@@ -1,0 +1,25 @@
+{
+  "_note": "2026 WC 实际赛果。每场比完后用 python3 update_elo.py 更新 Elo，再手动在这里加一行。",
+  "matches": [
+    {"date": "2026-06-11", "home": "Spain",     "away": "Cape Verde", "hg": 0, "ag": 0, "stage": "Group"},
+    {"date": "2026-06-11", "home": "Brazil",    "away": "Morocco",    "hg": 1, "ag": 1, "stage": "Group"},
+    {"date": "2026-06-12", "home": "Argentina", "away": "Qatar",      "hg": 3, "ag": 0, "stage": "Group"},
+    {"date": "2026-06-12", "home": "France",    "away": "Haiti",      "hg": 3, "ag": 0, "stage": "Group"},
+    {"date": "2026-06-12", "home": "Germany",   "away": "Uruguay",    "hg": 1, "ag": 1, "stage": "Group"},
+    {"date": "2026-06-13", "home": "England",   "away": "Panama",     "hg": 4, "ag": 0, "stage": "Group"},
+    {"date": "2026-06-13", "home": "Japan",     "away": "Jordan",     "hg": 2, "ag": 0, "stage": "Group"},
+    {"date": "2026-06-13", "home": "USA",       "away": "Egypt",      "hg": 2, "ag": 0, "stage": "Group"},
+    {"date": "2026-06-14", "home": "Portugal",  "away": "Iraq",       "hg": 3, "ag": 1, "stage": "Group"},
+    {"date": "2026-06-14", "home": "Netherlands","away": "Ecuador",   "hg": 2, "ag": 1, "stage": "Group"},
+    {"date": "2026-06-15", "home": "Mexico",    "away": "Senegal",    "hg": 1, "ag": 0, "stage": "Group"},
+    {"date": "2026-06-15", "home": "Colombia",  "away": "Algeria",    "hg": 2, "ag": 0, "stage": "Group"},
+    {"date": "2026-06-16", "home": "Uruguay",   "away": "Morocco",    "hg": 0, "ag": 0, "stage": "Group"},
+    {"date": "2026-06-16", "home": "Croatia",   "away": "South Korea","hg": 1, "ag": 0, "stage": "Group"},
+    {"date": "2026-06-17", "home": "Spain",     "away": "Tunisia",    "hg": 2, "ag": 0, "stage": "Group"},
+    {"date": "2026-06-17", "home": "Ivory Coast","away": "Ecuador",   "hg": 1, "ag": 1, "stage": "Group"},
+    {"date": "2026-06-18", "home": "Argentina", "away": "South Africa","hg": 2, "ag": 0, "stage": "Group"},
+    {"date": "2026-06-18", "home": "France",    "away": "Bosnia",     "hg": 2, "ag": 0, "stage": "Group"},
+    {"date": "2026-06-19", "home": "Brazil",    "away": "Uzbekistan", "hg": 3, "ag": 0, "stage": "Group"},
+    {"date": "2026-06-19", "home": "England",   "away": "Algeria",    "hg": 1, "ag": 0, "stage": "Group"}
+  ]
+}
