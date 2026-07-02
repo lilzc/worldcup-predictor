@@ -483,6 +483,17 @@ def run_walkforward(verbose: bool = True, use_ad: bool = None):
 
     total_bets = total_stake = total_pnl = wins = pushes = losses = 0
     rows = []
+    dir_stats: dict[str, dict] = {}  # 分方向命中统计
+
+    def _direction(lbl: str, mtype: str, home: str, away: str) -> str:
+        if mtype == "1X2":
+            if "平局" in lbl:  return "平局"
+            if home  in lbl:  return "主胜"
+            if away  in lbl:  return "客胜"
+            return "1X2"
+        if mtype == "OU":
+            return "Over" if "大" in lbl else "Under"
+        return mtype  # AH 等原样返回
 
     if verbose:
         ad_tag = "AD+Elo" if _ad_enabled else "Elo-only"
@@ -528,13 +539,22 @@ def run_walkforward(verbose: bool = True, use_ad: bool = None):
                 elif outcome == "push": pushes += 1
                 else:                   losses += 1
 
+                # 分方向统计
+                d = _direction(lbl, mtype, home, away)
+                ds = dir_stats.setdefault(d, {"n": 0, "w": 0, "p": 0, "l": 0, "pnl": 0.0})
+                ds["n"] += 1; ds["pnl"] += pv
+                if outcome == "win":    ds["w"] += 1
+                elif outcome == "push": ds["p"] += 1
+                else:                   ds["l"] += 1
+
                 sym = "✓WIN" if outcome == "win" else ("=PUSH" if outcome == "push" else
                       "½" if "half" in outcome else "✗LOSE")
                 if verbose:
                     print(f"    推[{mtype}] {lbl:<22} @{odds:.2f}  "
                           f"mo{mo*100:.0f}%  mkt{tm*100:.0f}%  e{edge*100:+.0f}%  gap{gap*100:.0f}%  "
                           f"{sym} P&L¥{pv:+.0f}")
-                rows.append({"match": f"{home} vs {away}", "bet": lbl, "odds": odds,
+                rows.append({"match": f"{home} vs {away}", "bet": lbl, "mtype": mtype,
+                             "direction": d, "odds": odds,
                              "model": mo, "mkt": tm, "edge": edge, "gap": gap,
                              "result": f"{hg}-{ag}", "outcome": outcome, "pnl": pv})
 
@@ -556,6 +576,24 @@ def run_walkforward(verbose: bool = True, use_ad: bool = None):
             adj_pnl   = total_pnl - ecu_pnl
             print(f"  去Ecuador偶发大赔: P&L¥{adj_pnl:+.0f}  "
                   f"ROI{adj_pnl/adj_stake*100:+.1f}% (n={total_bets-1})")
+
+        # ── 分方向命中率台账 ──────────────────────────────────────────────────
+        if dir_stats:
+            print(f"\n  {'─'*60}")
+            print(f"  {'方向':<8} {'N':>4} {'W':>4} {'P':>4} {'L':>4} "
+                  f"{'命中率':>7} {'P&L':>9} {'ROI':>8}")
+            print(f"  {'─'*60}")
+            _ORDER = ["主胜", "平局", "客胜", "Over", "Under", "AH"]
+            for d in _ORDER + [k for k in dir_stats if k not in _ORDER]:
+                if d not in dir_stats:
+                    continue
+                s = dir_stats[d]
+                hit = s["w"] / s["n"] * 100
+                roi_d = s["pnl"] / (STAKE * s["n"]) * 100
+                print(f"  {d:<8} {s['n']:>4} {s['w']:>4} {s['p']:>4} {s['l']:>4} "
+                      f"{hit:>6.0f}%  ¥{s['pnl']:>+8.0f}  {roi_d:>+7.1f}%")
+            print(f"  {'─'*60}")
+            print(f"  注: 命中率=WIN/N（不含PUSH），样本量小时置信区间宽")
     return rows, total_bets, total_pnl, roi
 
 
