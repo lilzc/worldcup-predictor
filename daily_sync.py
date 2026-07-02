@@ -117,18 +117,64 @@ def step_results_sync() -> dict:
 
     write_staging(confirmed, pending)
 
-    # Print staging summary table
+    # ── 增强版确认表 ──────────────────────────────────────────────────────────
+    W = 66
+    def _hline(c="─"): print("  ┌" + c * W + "┐")
+    def _hline_mid(c="─"): print("  ├" + c * W + "┤")
+    def _hline_bot(c="─"): print("  └" + c * W + "┘")
+    def _row(s): print(f"  │ {s:<{W-1}}│")
+
     if confirmed:
-        print(f"\n  待入库赛果 ({len(confirmed)} 场已双源确认):")
-        print("  ┌" + "─" * 50 + "┐")
-        for c in confirmed:
-            line = f"  {c['home']} vs {c['away']}    {c['hg']}-{c['ag']} (90min)  两源一致 ✓"
-            print(f"  │  {line:<48}│")
-        print("  └" + "─" * 50 + "┘")
-        print("  执行 python3 daily_sync.py --commit-results 确认入库并触发 replay")
+        print(f"\n  待入库赛果 — {len(confirmed)} 场双源确认，可直接入库:")
+        _hline()
+        for i, c in enumerate(confirmed):
+            if i > 0:
+                _hline_mid()
+            sa = c.get("source_a") or {}
+            sb = c.get("source_b") or {}
+            sa_score = f"{sa['hg']}-{sa['ag']}" if sa else "N/A"
+            sb_score = f"{sb['hg']}-{sb['ag']}" if sb else "N/A"
+            # 口径判断：都是 FT 90min（小组赛），淘汰赛另行标注
+            stage = c.get("stage", "Group")
+            if stage == "Group":
+                oral = "90min FT (小组赛，无加时)"
+            else:
+                oral = f"⚠ {stage} — 请确认是否为90min比分"
+            _row(f"场次:  {c['home']} vs {c['away']}   ({c['date']})")
+            _row(f"源A odds-api : {sa_score:<8}  源B martj42 : {sb_score:<8}  → {oral}")
+            _row(f"建议入库值   : {c['hg']}-{c['ag']}  [{stage}]  ← 两源一致，直接确认")
+        _hline_bot()
+        print("  → 确认无误请执行: python3 daily_sync.py --commit-results")
 
     if pending:
-        print(f"  {len(pending)} 条记录进入 pending（待人工裁决或等第二源）")
+        print(f"\n  待人工裁决 — {len(pending)} 条冲突/单源，不自动入库:")
+        _hline()
+        for i, p in enumerate(pending):
+            if i > 0:
+                _hline_mid()
+            sa = p.get("source_a") or {}
+            sb = p.get("source_b") or {}
+            sa_score = f"{sa['hg']}-{sa['ag']}" if sa else "—"
+            sb_score = f"{sb['hg']}-{sb['ag']}" if sb else "—"
+            _row(f"场次: {p['home']} vs {p['away']}  ({p['date']})")
+            _row(f"源A odds-api : {sa_score:<10}  源B martj42 : {sb_score:<10}  verdict={p['verdict']}")
+            if p["verdict"] == "CONFLICT":
+                # 猜测是否 AET（两源分歧且一方比分为平局）
+                is_maybe_aet = (sa and sb and
+                                sa["hg"] != sb["hg"] and
+                                (sa["hg"] == sa["ag"] or sb["hg"] == sb["ag"]))
+                if is_maybe_aet:
+                    _row("⚠ 可能口径差异: 一源为90min平局，另一源为加时后总比分")
+                    _row("建议: 人工核对，以90min比分手动填入后运行 --commit-results")
+                else:
+                    _row(f"冲突原因: {p.get('note','比分不一致')}")
+                    _row("建议: 核实比赛录像/官方比分，确认后手动修改 staging 再 --commit-results")
+            elif p["verdict"] == "SINGLE_SOURCE":
+                src_name = "odds-api" if sa else "martj42"
+                _row(f"单源: 仅有 {src_name} 数据，等待第二源或人工确认")
+                _row(f"建议入库值(单源参考): {p['hg']}-{p['ag']}  — 请人工核实后入库")
+        _hline_bot()
+        print(f"  冲突记录已写入 data/pending_results.jsonl")
 
     return {"confirmed": len(confirmed), "pending": len(pending)}
 
