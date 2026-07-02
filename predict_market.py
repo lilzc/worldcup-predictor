@@ -468,42 +468,62 @@ def run_auto_today() -> None:
             "news_flags": [],
         }
         news_data = auto_news_map.get((mt.home, mt.away))
+
+        # A 系统独立分析 — 必须在 print_match_b 之前，a_portfolio 才能传进去
+        a_data = None
+        a_portfolio = None
+        try:
+            import contextlib as _cl, io as _io
+            from predict import predict as _a_predict
+            from today import (compute_1x2_kill_results as _kill_fn,
+                               _print_dc_nonconsensus, _print_gsv_experiment_line)
+            _abuf = _io.StringIO()
+            with _cl.redirect_stdout(_abuf):
+                _ar = _a_predict(
+                    home_team=mt.home, away_team=mt.away,
+                    odds_home=mt.odds_home, odds_draw=mt.odds_draw,
+                    odds_away=mt.odds_away,
+                )
+            if _ar:
+                a_portfolio = _ar.get("portfolio", [])
+                _kr = _kill_fn(
+                    mt.home, mt.away,
+                    _ar.get("value", {}),
+                    mt.odds_home, mt.odds_draw, mt.odds_away,
+                )
+                a_data = {
+                    "probs": _ar["probs"],
+                    "value": _ar.get("value", {}),
+                    "kill_results": _kr,
+                }
+        except Exception as _ae_err:
+            sys.stderr.write(f"    ⚠ A分析失败({mt.home} vs {mt.away}): {_ae_err}\n")
+
         # 在 B1 输出块前打印 kickoff 信息
         print(f"\n  开球: {mt.commence_time}  ({mt.kickoff_delta})  "
               f"赔率 [{mt.odds_home}/{mt.odds_draw}/{mt.odds_away}] @{mt.bookmaker}")
-        res = print_match_b(m_dict, a_portfolio=None, news_data=news_data)
+        res = print_match_b(m_dict, a_portfolio=a_portfolio, news_data=news_data)
         if res:
             b_results.append(res)
 
-            # A 系统独立分析（仅用于非共识标注展示，不改 B1 任何逻辑）
-            # predict() 用动态 elo_state.json 算 edge；kill 关卡用静态 TEAM_ELO，与 best_bets_report 一致
-            a_data = None
+        # DC 非共识标注 + GSV 实验假设对照（B 输出后每场末尾）
+        if a_data:
             try:
-                import contextlib as _cl, io as _io
-                from predict import predict as _a_predict
-                from today import compute_1x2_kill_results as _kill_fn
-                _abuf = _io.StringIO()
-                with _cl.redirect_stdout(_abuf):
-                    _ar = _a_predict(
-                        home_team=mt.home, away_team=mt.away,
-                        odds_home=mt.odds_home, odds_draw=mt.odds_draw,
-                        odds_away=mt.odds_away,
-                    )
-                if _ar:
-                    _kr = _kill_fn(
-                        mt.home, mt.away,
-                        _ar.get("value", {}),
-                        mt.odds_home, mt.odds_draw, mt.odds_away,
-                    )
-                    a_data = {
-                        "probs": _ar["probs"],
-                        "value": _ar.get("value", {}),
-                        "kill_results": _kr,
-                    }
-            except Exception as _ae_err:
-                sys.stderr.write(f"    ⚠ A分析失败({mt.home} vs {mt.away}): {_ae_err}\n")
+                _probs = a_data["probs"]
+                _print_dc_nonconsensus(
+                    mt.home, mt.away,
+                    _probs.get("home_win", 0), _probs.get("draw", 0), _probs.get("away_win", 0),
+                    m_dict,
+                )
+                _print_gsv_experiment_line(
+                    mt.home, mt.away,
+                    _probs.get("home_win", 0), _probs.get("draw", 0), _probs.get("away_win", 0),
+                    m_dict,
+                )
+            except Exception as _ann_err:
+                sys.stderr.write(f"    ⚠ 非共识/GSV标注失败: {_ann_err}\n")
 
-            match_infos.append({"mt": mt, "b": res, "news": news_data, "a": a_data})
+        match_infos.append({"mt": mt, "b": res, "news": news_data, "a": a_data})
 
     # ── 情报质量汇总 ─────────────────────────────────────────────────────
     if auto_news_map:
