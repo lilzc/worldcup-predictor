@@ -126,7 +126,7 @@ commit message 格式：
 - 20-30%校准区间结构性偏差：模型在此区间分配24%，实际发生率9.8%（41样本）——平局预测与实际平局触发事件不相关，这是Poisson模型对平局的结构性局限，参数调整无法根治
 - **平局生成与表达问题（收敛病灶，2026-07-03合并三条挂起项）**：三个现象同源，解封条件统一，届时立**单个spec**一起评估，不分开修。
   1. **平局分区间画像（分布根因）**：20-25% 高估（实际0%）/ 25-30% 准确 / 30-35% 低估(+4.8pp) / 35-40% 低估(+5.4pp)。高估仅在20-25%区间，30%以上全面低估。`DRAW_MIN_PROB=35%`的"Poisson高估补偿"设立依据在≥30%区间已反向，规则执行方向与实证矛盾。`DRAW_MIN_EDGE=7%`来源"高估补偿"，同样须与DRAW_MIN_PROB一起重评。当前不动原因：样本N=37不足 + 两参数双重压制下独立信号无法量化（"候选少"是本规则压制结果，不得用循环论证规则无害）。
-  2. **GSV压λ后概率质量灌入平局（表达错位）**：GSV触发时强队λ×0.80，Poisson把概率质量转移到平局方向（Turkey-USA: walkforward路径平局39.5% vs 预期生产路径32.5%）。**两路径不一致已确认**：walkforward._build_mat_custom将GSV应用于完整矩阵（含1X2），predict.py按设计只对AH/OU应用GSV；两路径DC edge差值=+7.5pp(WF) vs -4.8pp(predict.py)。生产路径(today.py)的DC非共识标注因此不触发。4场A-B分歧比赛（Netherlands/Sweden, Paraguay/Australia, Norway/France, Colombia/Portugal）全为diff 58-120的**非GSV触发场次**（diff<150），是基础Poisson在中等Elo差段的结构性平局高估，与GSV机制无关。GSV表达错位目前仅Turkey-USA单案例。
+  2. **GSV压λ后概率质量灌入平局（表达错位）**：GSV触发时强队λ×0.80，Poisson把概率质量转移到平局方向。**✓ 已修复（2026-07-03）**：walkforward._build_mat_custom之前将GSV应用于完整矩阵（含1X2），现已对齐predict.py双矩阵设计（GSV只覆盖AH/OU，1X2用非GSV矩阵+apply_all）。修复后Turkey-USA: WF平局32.5%（vs旧路径39.5%），DC edge=-4.8pp（vs旧+7.5pp），WF ROI从+28.8%(31注)→+24.5%(33注)（差值4.2pp为旧污染贡献虚高）。today.py的DC非共识标注因此在Turkey-USA不触发（生产路径DC=-4.8pp<7%阈值）。4场A-B分歧比赛（Netherlands/Sweden, Paraguay/Australia, Norway/France, Colombia/Portugal）全为diff 58-120的**非GSV触发场次**（diff<150），是基础Poisson在中等Elo差段的结构性平局高估，与GSV机制无关。**猜想重述**：GSV若扩展至1X2，Turkey-USA DC边际=+7.5pp（测试假设，不是当前系统行为）。
   3. **DRAW_MIN_PROB泛化路径**：待淘汰赛平局样本积累后重跑分区间统计，若低估图案持续 → 下调DRAW_MIN_PROB至~25-28%，同步重评DRAW_MIN_EDGE，同步评估DC出口可行性，走fence zone同款流程（spec→implement→walkforward对比→确认→integrate）。
   **解封条件（沿用GSV追踪器门槛）**：2026-07-03后新增GSV触发场次≥8且样本外DC假想ROI为正。届时三件事一起立spec，不分开动。
 - AH raw-Poisson λ膨胀：Elo差150-300区间已用GSV_LAMBDA_FACTOR=0.80修正（Uruguay 2.31→1.85，Belgium 2.18→1.75），Elo差>300场次（Spain vs Qatar等）修正不触发，仍依赖ARTIFACT_GAP=0.08拦截
@@ -141,7 +141,7 @@ commit message 格式：
   2. 攻防分解在淘汰赛起生效（每队已有≥3场小组赛记录）。λ偏差量级：如Norway/France Over2.5 55.6%→78.4%，England/Colombia 52.5%→37.4%，信号方向合理但无真实淘汰赛结果可验证准确率。
   3. backtest 显示 Brier 0.4854→0.4296（含前视：用了全72场最终AD state）——这个数字含前视污染，**不作为AD因子有效性的证据**。干净证据以无前视walkforward/实际淘汰赛结果为准，当前状态为"淘汰赛信号待验证"。
   - AD参数改动需同时验证：AD_BLEND_WEIGHT改动对比淘汰赛ROI；AD_SHRINKAGE_K改动对比λ偏离量；AD_MIN_MATCHES降低需说明噪声代价（n=2+K=8收缩后因子偏离量≤20%，代价高于信号）。
-- **Turkey-USA 案例（第60场，2026-06-26 重放）：** GSV 触发（USA Elo 1869, diff=158）后 A 与市场大分歧（USA胜 40.8% vs 市场48.3%；平局 39.5% vs 25.1%），分歧方向被实际结果支持（Turkey 3-2）。但信号表达集中于"平局"单一出口（Poisson 压 λ 的数学结果），Turkey胜方向 edge 为负（-6.8pp）；若存在"双重机会 1X"盘口，A 持有 +7.5pp 正 edge（walkforward路径计算：DC1X=59.2% vs 市场51.7%）且该标的实际兑现。平局注 gap=14.4%>8% 被 LOW 拦截是**零代价的正确拦截**——分歧方向（"USA不会轻松赢"）正确，但被拦标的（平局）本身若下会 LOSE（Turkey 3-2 胜，平局落空）；方向对≠标的对，gap 拦截本场无代价。真正兑现的承接标的（1X/Turkey胜）不在当前盘口清单或 edge 为负。**⚠ 两路径DC edge不一致已确认（2026-07-03）**：walkforward._build_mat_custom将GSV λ×0.8应用于完整1X2矩阵（平局39.5%），predict.py/today.py按设计仅对AH/OU应用GSV（平局32.5%）；生产路径DC edge=-4.8pp，非共识标注不触发。"+7.5pp"来源walkforward路径，不代表生产推单能捕获此信号。**DC出口猜想作为挂起项并入"平局生成与表达问题（收敛病灶）"，同解封条件：2026-07-03后新增GSV触发场次≥8且DC ROI为正。**届时立 spec 走 fence zone 流程。AH+0.5方向已审计：+115.5% 为样本期冷门密集6注子集，不可持续，同标准解封。
+- **Turkey-USA 案例（第60场，2026-06-26 重放）：** GSV 触发（USA Elo 1869, diff=158）后 A 与市场大分歧（USA胜 40.8% vs 市场48.3%；平局 32.5% vs 25.1%，生产路径修复后），分歧方向被实际结果支持（Turkey 3-2）。但信号表达集中于"平局"单一出口（Poisson 压 λ 的数学结果），Turkey胜方向 edge 为负（-6.8pp）。平局注 gap=14.4%>8% 被 LOW 拦截是**零代价的正确拦截**——方向对≠标的对，gap 拦截本场无代价。真正兑现的承接标的（1X/Turkey胜）不在当前盘口清单或 edge 为负。**✓ 双路径对账修复完成（2026-07-03）**：walkforward.py已对齐predict.py双矩阵（WF_GSV_MODE="production"，默认）；生产路径DC edge=-4.8pp，today.py非共识标注正确不触发（-4.8pp<7%阈值）。"旧+7.5pp"是legacy路径数字，已废弃。**DC出口猜想并入"平局生成与表达问题（收敛病灶）"**，解封条件：2026-07-03后新增GSV触发场次≥8且样本外DC假想ROI为正。届时立 spec 走 fence zone 流程。AH+0.5方向已审计：+115.5% 为样本期冷门密集6注子集，不可持续，同标准解封。**回归验证记录**：双路径一致性（today.py edge == walkforward production edge）是每场案例的标准验收项目。
 
 ## 运营态基准快照（2026-07-03，N=72场小组赛，搭建期收官）
 
@@ -151,9 +151,10 @@ commit message 格式：
 |------|------|------|
 | Brier Score | **0.4296** | backtest 72场，含前视 AD state（不作为AD有效性证据） |
 | 1X2 准确率 | **65.3%** (47/72) | backtest |
-| WF Edge ROI | **+28.8%** (31注) | walkforward 无前视，v4 参数集 |
+| WF Edge ROI | **+24.5%** (33注) | walkforward 无前视，v4 参数集，**GSV双矩阵修复后**（生产对齐） |
+| WF Edge ROI（存档） | ~~+28.8% (31注)~~ | **pre-fix，GSV全矩阵污染，仅存档**。差值-4.2pp为GSV错误应用于1X2贡献的虚高 |
 | Replay 轨迹 | **✓一致** | checksum=86230.0，72场 Elo 序列与全量 replay 逐场一致 |
-| GSV DC 无水ROI | **+21.4%** (N=24, 14注有赔率) | 假想追踪器；无水近似价，真实盘口含vig≈2-4%需下调 |
+| GSV DC 无水ROI | **+21.4%** (N=24, 14注有赔率) | 假想追踪器；**已用生产路径重填（2026-07-03）**；无水近似价，真实盘口含vig≈2-4%需下调 |
 | GSV AH+0.5 ROI | **+115.5%** (6注，真实赔率结算) | **已审计：不可持续。** 6注=14注里命中率最高的子集（5W/1L），恰好是本届小组赛冷门密集场次（Belgium×2平、Uruguay平、Ecuador爆冷）；计算无误，但系样本期选择偏差，非策略属性。同6注套DC无水ROI=+117.8%，差值=vig，两者口径自洽。解封须2026-07-03后新增≥8场样本外GSV触发场次且DC ROI为正。 |
 
 **数据管线状态**：`daily_sync.py` 四步管线 + staging 人工确认闸 + db_health 七项体检全绿。`update_elo.py` 单场直接写入路径已废弃（2026-07-03），仅保留 Elo 预览功能，所有入库统一走 `--commit-results`。
