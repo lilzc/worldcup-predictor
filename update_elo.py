@@ -156,36 +156,23 @@ def main():
         parser.print_help()
         sys.exit(1)
 
+    # ── 单场直接写入路径已废弃 (2026-07-03) ──────────────────────────────
+    # 原路径问题：
+    #   1. save_elo() 是增量更新，违反 CLAUDE.md "入库后必须走全量 replay" 规定
+    #   2. 绕过双源验证 / staging / 人工确认闸
+    #   3. stage 字段硬编码 "Group"，淘汰赛入库必错
+    # 正确路径：python3 daily_sync.py → --commit-results（自动触发全量 replay）
+    # ─────────────────────────────────────────────────────────────────────
     before_h = elo.get(args.home, 1700)
     before_a = elo.get(args.away, 1700)
+    elo_preview = update_one(dict(elo), args.home, args.away, args.hg, args.ag)
 
-    elo = update_one(elo, args.home, args.away, args.hg, args.ag)
-    save_elo(elo)
-
-    print(f"\n  {args.home} {args.hg}-{args.ag} {args.away}")
-    print(f"  {args.home:<20} {before_h:.0f} → {elo[args.home]:.0f} ({elo[args.home]-before_h:+.0f})")
-    print(f"  {args.away:<20} {before_a:.0f} → {elo[args.away]:.0f} ({elo[args.away]-before_a:+.0f})")
-
-    # Also append to results file
-    with open(RESULTS_PATH) as f:
-        data = json.load(f)
-
-    from datetime import date
-    today_str = str(date.today())
-    already = any(
-        m["home"] == args.home and m["away"] == args.away and m.get("date") == today_str
-        for m in data["matches"]
-    )
-    if not already:
-        data["matches"].append({
-            "date": str(date.today()),
-            "home": args.home, "away": args.away,
-            "hg": args.hg, "ag": args.ag,
-            "stage": "Group",
-        })
-        with open(RESULTS_PATH, "w") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-        print(f"  已追加到 {RESULTS_PATH}")
+    print(f"\n  [预览] {args.home} {args.hg}-{args.ag} {args.away}  (不写入任何文件)")
+    print(f"  {args.home:<20} {before_h:.0f} → {elo_preview[args.home]:.0f} ({elo_preview[args.home]-before_h:+.0f})")
+    print(f"  {args.away:<20} {before_a:.0f} → {elo_preview[args.away]:.0f} ({elo_preview[args.away]-before_a:+.0f})")
+    print()
+    print("  ⚠ 直接写入已废弃：此命令仅做 Elo 变化预览，不更新 elo_state.json 也不写入 results.json")
+    print("  → 入库请走: python3 daily_sync.py --commit-results")
 
 
 if __name__ == "__main__":
