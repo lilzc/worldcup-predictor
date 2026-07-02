@@ -326,28 +326,32 @@
       "home": "France",
       "away": "Iraq",
       "hg": 3,
-      "ag": 0
+      "ag": 0,
+      "stage": "Group"
     },
     {
       "date": "2026-06-22",
       "home": "Norway",
       "away": "Senegal",
       "hg": 3,
-      "ag": 2
+      "ag": 2,
+      "stage": "Group"
     },
     {
       "date": "2026-06-22",
       "home": "Argentina",
       "away": "Austria",
       "hg": 2,
-      "ag": 0
+      "ag": 0,
+      "stage": "Group"
     },
     {
       "date": "2026-06-22",
       "home": "Jordan",
       "away": "Algeria",
       "hg": 1,
-      "ag": 2
+      "ag": 2,
+      "stage": "Group"
     },
     {
       "date": "2026-06-24",
