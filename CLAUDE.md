@@ -34,6 +34,8 @@ commit message 格式：
 
 **理由**：fence zone 修复（OU_FENCE_WITH_ELO True/False）这类开关 A/B 对比，必须有干净的独立提交才能回退到对照基准。没有 commit 就没有回退点，参数迭代的历史证据也无法追溯。
 
+每次 commit 后同步 push 到 origin（`git push`）。本地 commit 不 push = 没有远程备份，断电/误删无法恢复。
+
 ## 参数边界（不经 spec + 回测不能动）
 
 - `BASE_GOALS`：当前 1.32，改动需要回测 Over2.5 准确率对比
