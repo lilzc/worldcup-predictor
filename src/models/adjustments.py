@@ -3,7 +3,7 @@ All probability adjustment factors synthesized from three repos + our backtest.
 Applied after base Poisson model in sequence.
 """
 
-from config import DEFENDING_CHAMPION, UCL_MENTALITY, PROB_CAP
+from config import DEFENDING_CHAMPION, UCL_MENTALITY, PROB_CAP, UCL_MENTALITY_ENABLED, FLB_ENABLED
 
 
 # ── 1. Favorite-Longshot Bias (Repo2: 彩票悖论) ─────────────────────────────
@@ -48,6 +48,8 @@ def defending_champion_adjustment(team: str, prob: float) -> float:
 # Positive = finals winner mentality; negative = consecutive exits
 
 def ucl_adjustment(team: str, prob: float) -> float:
+    if not UCL_MENTALITY_ENABLED:
+        return prob
     delta = UCL_MENTALITY.get(team, 0.0)
     return prob + delta * 0.5   # dampen: WC context ≠ UCL context
 
@@ -63,20 +65,27 @@ def h2h_adjustment(prob: float, h2h_edge: float) -> float:
 # Strong teams (Elo>1850) underperform in group stage — rotate/experiment.
 # Back-tested: Brazil 1-1 Morocco, Spain 0-0 Cape Verde both validated this.
 
-from config import TEAM_ELO as _BASE_ELO
+from config import DRAW_CALIBRATION, PROB_SHARPENING
 
 def group_stage_volatility(home_team: str, away_team: str,
                             hw: float, d: float, aw: float,
-                            is_group_stage: bool = True) -> tuple[float, float, float]:
+                            is_group_stage: bool = True,
+                            home_elo: float = None,
+                            away_elo: float = None) -> tuple[float, float, float]:
     if not is_group_stage:
         return hw, d, aw
-    live_elo = _BASE_ELO  # use base as approximation here
-    penalty = 0.06
-    if live_elo.get(home_team, 0) > 1850 and hw > aw:
+    if home_elo is None or away_elo is None:
+        from src.models.poisson import get_elo  # lazy import, no circular dependency
+        _elo = get_elo()
+        home_elo = home_elo if home_elo is not None else _elo.get(home_team, 0)
+        away_elo = away_elo if away_elo is not None else _elo.get(away_team, 0)
+    penalty = 0.12
+    orig_hw, orig_aw = hw, aw
+    if home_elo > 1850 and orig_hw > orig_aw:
         hw -= penalty
         d  += penalty * 0.7
         aw += penalty * 0.3
-    if live_elo.get(away_team, 0) > 1850 and aw > hw:
+    if away_elo > 1850 and orig_aw > orig_hw:
         aw -= penalty
         d  += penalty * 0.7
         hw += penalty * 0.3
@@ -93,10 +102,13 @@ def apply_all(
     aw: float,
     h2h_home_edge: float = 0.0,
     is_group_stage: bool = True,
+    home_elo: float = None,
+    away_elo: float = None,
 ) -> dict:
     # FLB
-    hw = flb_correction(hw)
-    aw = flb_correction(aw)
+    if FLB_ENABLED:
+        hw = flb_correction(hw)
+        aw = flb_correction(aw)
 
     # Defending champion curse
     hw = defending_champion_adjustment(home_team, hw)
@@ -111,8 +123,9 @@ def apply_all(
         hw = h2h_adjustment(hw, h2h_home_edge)
         aw = h2h_adjustment(aw, -h2h_home_edge)
 
-    # Group stage volatility
-    hw, d, aw = group_stage_volatility(home_team, away_team, hw, d, aw, is_group_stage)
+    # Group stage volatility (uses passed Elo to stay consistent with score_matrix)
+    hw, d, aw = group_stage_volatility(home_team, away_team, hw, d, aw, is_group_stage,
+                                        home_elo=home_elo, away_elo=away_elo)
 
     # Normalize
     total = hw + d + aw
@@ -121,10 +134,22 @@ def apply_all(
     # Cap
     hw, d, aw = cap_probs(hw, d, aw)
 
+    # Draw calibration: explicit deflation/inflation before final normalize
+    d *= DRAW_CALIBRATION
+
     # Final normalize
     total = hw + d + aw
+    hw, d, aw = hw / total, d / total, aw / total
+
+    # Probability sharpening: p^α then renormalize
+    # Compresses tail (under-dogs) and boosts favorites to match empirical calibration
+    if PROB_SHARPENING != 1.0:
+        hw, d, aw = hw ** PROB_SHARPENING, d ** PROB_SHARPENING, aw ** PROB_SHARPENING
+        total = hw + d + aw
+        hw, d, aw = hw / total, d / total, aw / total
+
     return {
-        "home_win": hw / total,
-        "draw":     d  / total,
-        "away_win": aw / total,
+        "home_win": hw,
+        "draw":     d,
+        "away_win": aw,
     }

@@ -11,13 +11,15 @@
 import json
 import sys
 import os
+import math
 import argparse
 
 sys.path.insert(0, ".")
-from config import TEAM_ELO
+from config import TEAM_ELO, BASE_GOALS, ELO_SCALE
 
 ELO_PATH = "data/elo_state.json"
 RESULTS_PATH = "data/wc2026_results.json"
+AD_PATH = "data/attack_defense_state.json"
 K = 60  # WC K-factor（FIFA 官方重要赛事用 60）
 
 
@@ -57,16 +59,60 @@ def update_one(elo: dict, home: str, away: str, hg: int, ag: int) -> dict:
     return elo
 
 
+def _ad_elo_exp(elo_team: float, elo_opp: float) -> float:
+    """Pre-match Elo-expected goals (pure Elo, no home_adv/form)."""
+    return BASE_GOALS * math.exp((elo_team - elo_opp) / ELO_SCALE)
+
+
+def _ad_update_entry(ad: dict, team: str, goals_for: int, goals_against: int,
+                     exp_for: float, exp_against: float):
+    if team not in ad:
+        ad[team] = {"att_goals_sum": 0.0, "att_exp_sum": 0.0,
+                    "def_goals_sum": 0.0, "def_exp_sum": 0.0, "n": 0}
+    s = ad[team]
+    s["att_goals_sum"] += goals_for
+    s["att_exp_sum"]   += exp_for
+    s["def_goals_sum"] += goals_against
+    s["def_exp_sum"]   += exp_against
+    s["n"]             += 1
+
+
+def save_ad(ad: dict):
+    os.makedirs("data", exist_ok=True)
+    with open(AD_PATH, "w") as f:
+        json.dump(ad, f, indent=2, ensure_ascii=False)
+
+
 def replay_all() -> dict:
-    """Rebuild Elo from scratch using all recorded results."""
+    """Rebuild Elo + attack/defense state from scratch using all recorded results.
+    AD state uses pre-match Elo for expected-goal baseline (no lookahead).
+    """
     with open(RESULTS_PATH) as f:
         data = json.load(f)
 
     elo = dict(TEAM_ELO)
+    ad = {}
     for m in data["matches"]:
-        elo = update_one(elo, m["home"], m["away"], m["hg"], m["ag"])
+        home, away, hg, ag = m["home"], m["away"], m["hg"], m["ag"]
+        he = elo.get(home, 1700.0)
+        ae = elo.get(away, 1700.0)
+
+        # Pre-match Elo-expected goals (taken BEFORE this match updates Elo)
+        exp_h = _ad_elo_exp(he, ae)
+        exp_a = _ad_elo_exp(ae, he)
+
+        # Update AD state: home team attacks vs away defense, and vice-versa
+        _ad_update_entry(ad, home, hg, ag, exp_h, exp_a)
+        _ad_update_entry(ad, away, ag, hg, exp_a, exp_h)
+
+        # Update Elo AFTER AD state (keeps AD baseline clean)
+        elo = update_one(elo, home, away, hg, ag)
+
     save_elo(elo)
+    save_ad(ad)
     print(f"重建完成，共处理 {len(data['matches'])} 场比赛")
+    print(f"Elo → {ELO_PATH}")
+    print(f"攻防状态 → {AD_PATH}")
     return elo
 
 
@@ -125,8 +171,9 @@ def main():
         data = json.load(f)
 
     from datetime import date
+    today_str = str(date.today())
     already = any(
-        m["home"] == args.home and m["away"] == args.away
+        m["home"] == args.home and m["away"] == args.away and m.get("date") == today_str
         for m in data["matches"]
     )
     if not already:

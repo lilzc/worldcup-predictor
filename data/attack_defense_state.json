@@ -1,0 +1,338 @@
+{
+  "Mexico": {
+    "att_goals_sum": 6.0,
+    "att_exp_sum": 5.545879129253565,
+    "def_goals_sum": 0.0,
+    "def_exp_sum": 2.8828233901599054,
+    "n": 3
+  },
+  "South Africa": {
+    "att_goals_sum": 2.0,
+    "att_exp_sum": 3.2690617763852443,
+    "def_goals_sum": 3.0,
+    "def_exp_sum": 4.886118371948179,
+    "n": 3
+  },
+  "South Korea": {
+    "att_goals_sum": 2.0,
+    "att_exp_sum": 4.3380010916429566,
+    "def_goals_sum": 3.0,
+    "def_exp_sum": 3.711348025258706,
+    "n": 3
+  },
+  "Czechia": {
+    "att_goals_sum": 2.0,
+    "att_exp_sum": 3.2973389571757377,
+    "def_goals_sum": 6.0,
+    "def_exp_sum": 4.969991167090713,
+    "n": 3
+  },
+  "Canada": {
+    "att_goals_sum": 8.0,
+    "att_exp_sum": 4.412614940144718,
+    "def_goals_sum": 3.0,
+    "def_exp_sum": 3.676087422818862,
+    "n": 3
+  },
+  "Bosnia": {
+    "att_goals_sum": 5.0,
+    "att_exp_sum": 3.7928043495758326,
+    "def_goals_sum": 6.0,
+    "def_exp_sum": 4.278502094878705,
+    "n": 3
+  },
+  "USA": {
+    "att_goals_sum": 8.0,
+    "att_exp_sum": 5.311823706343388,
+    "def_goals_sum": 4.0,
+    "def_exp_sum": 2.990320022518532,
+    "n": 3
+  },
+  "Paraguay": {
+    "att_goals_sum": 2.0,
+    "att_exp_sum": 3.1706078442814185,
+    "def_goals_sum": 4.0,
+    "def_exp_sum": 4.978786461230071,
+    "n": 3
+  },
+  "Qatar": {
+    "att_goals_sum": 2.0,
+    "att_exp_sum": 2.849906151755955,
+    "def_goals_sum": 10.0,
+    "def_exp_sum": 5.609599010035075,
+    "n": 3
+  },
+  "Switzerland": {
+    "att_goals_sum": 7.0,
+    "att_exp_sum": 5.456290257306332,
+    "def_goals_sum": 3.0,
+    "def_exp_sum": 2.9474271710501956,
+    "n": 3
+  },
+  "Brazil": {
+    "att_goals_sum": 7.0,
+    "att_exp_sum": 7.067651242478313,
+    "def_goals_sum": 1.0,
+    "def_exp_sum": 2.345183448089092,
+    "n": 3
+  },
+  "Morocco": {
+    "att_goals_sum": 6.0,
+    "att_exp_sum": 5.304577811716033,
+    "def_goals_sum": 3.0,
+    "def_exp_sum": 3.4509412117117515,
+    "n": 3
+  },
+  "Haiti": {
+    "att_goals_sum": 2.0,
+    "att_exp_sum": 2.197909633493068,
+    "def_goals_sum": 8.0,
+    "def_exp_sum": 7.528509770746819,
+    "n": 3
+  },
+  "Scotland": {
+    "att_goals_sum": 1.0,
+    "att_exp_sum": 3.6174530101257485,
+    "def_goals_sum": 4.0,
+    "def_exp_sum": 4.8629572672655,
+    "n": 3
+  },
+  "Australia": {
+    "att_goals_sum": 2.0,
+    "att_exp_sum": 3.9420103017407064,
+    "def_goals_sum": 2.0,
+    "def_exp_sum": 4.032086159681064,
+    "n": 3
+  },
+  "Turkey": {
+    "att_goals_sum": 3.0,
+    "att_exp_sum": 3.878607979875204,
+    "def_goals_sum": 5.0,
+    "def_exp_sum": 4.301857188811048,
+    "n": 3
+  },
+  "Germany": {
+    "att_goals_sum": 10.0,
+    "att_exp_sum": 7.4881360519135285,
+    "def_goals_sum": 4.0,
+    "def_exp_sum": 2.226758979877567,
+    "n": 3
+  },
+  "Curacao": {
+    "att_goals_sum": 1.0,
+    "att_exp_sum": 2.109161938685459,
+    "def_goals_sum": 9.0,
+    "def_exp_sum": 7.7319336555978255,
+    "n": 3
+  },
+  "Netherlands": {
+    "att_goals_sum": 10.0,
+    "att_exp_sum": 5.921408695033037,
+    "def_goals_sum": 4.0,
+    "def_exp_sum": 2.809719747671488,
+    "n": 3
+  },
+  "Japan": {
+    "att_goals_sum": 7.0,
+    "att_exp_sum": 4.587193539601328,
+    "def_goals_sum": 3.0,
+    "def_exp_sum": 3.6679078499163134,
+    "n": 3
+  },
+  "Sweden": {
+    "att_goals_sum": 7.0,
+    "att_exp_sum": 4.132693246096851,
+    "def_goals_sum": 7.0,
+    "def_exp_sum": 3.999547871309951,
+    "n": 3
+  },
+  "Tunisia": {
+    "att_goals_sum": 2.0,
+    "att_exp_sum": 2.4368923537304457,
+    "def_goals_sum": 12.0,
+    "def_exp_sum": 6.601012365563909,
+    "n": 3
+  },
+  "Ivory Coast": {
+    "att_goals_sum": 4.0,
+    "att_exp_sum": 4.608379532252339,
+    "def_goals_sum": 2.0,
+    "def_exp_sum": 3.861331801672228,
+    "n": 3
+  },
+  "Ecuador": {
+    "att_goals_sum": 2.0,
+    "att_exp_sum": 4.138850569340952,
+    "def_goals_sum": 2.0,
+    "def_exp_sum": 4.524503655044659,
+    "n": 3
+  },
+  "Belgium": {
+    "att_goals_sum": 6.0,
+    "att_exp_sum": 6.554248238448976,
+    "def_goals_sum": 2.0,
+    "def_exp_sum": 2.4100521710708938,
+    "n": 3
+  },
+  "Egypt": {
+    "att_goals_sum": 5.0,
+    "att_exp_sum": 4.032330384143206,
+    "def_goals_sum": 3.0,
+    "def_exp_sum": 4.22692850668795,
+    "n": 3
+  },
+  "Iran": {
+    "att_goals_sum": 3.0,
+    "att_exp_sum": 3.5827447464037085,
+    "def_goals_sum": 3.0,
+    "def_exp_sum": 4.6752934740328325,
+    "n": 3
+  },
+  "New Zealand": {
+    "att_goals_sum": 4.0,
+    "att_exp_sum": 2.852728734371743,
+    "def_goals_sum": 10.0,
+    "def_exp_sum": 5.709777951575958,
+    "n": 3
+  },
+  "Spain": {
+    "att_goals_sum": 5.0,
+    "att_exp_sum": 6.967897628546633,
+    "def_goals_sum": 0.0,
+    "def_exp_sum": 2.375592471233875,
+    "n": 3
+  },
+  "Cape Verde": {
+    "att_goals_sum": 2.0,
+    "att_exp_sum": 2.5413795579519443,
+    "def_goals_sum": 2.0,
+    "def_exp_sum": 6.730981934867938,
+    "n": 3
+  },
+  "Saudi Arabia": {
+    "att_goals_sum": 1.0,
+    "att_exp_sum": 3.0996135814922487,
+    "def_goals_sum": 5.0,
+    "def_exp_sum": 5.4642305813662775,
+    "n": 3
+  },
+  "Uruguay": {
+    "att_goals_sum": 3.0,
+    "att_exp_sum": 5.298443494648208,
+    "def_goals_sum": 4.0,
+    "def_exp_sum": 3.3365292751709443,
+    "n": 3
+  },
+  "France": {
+    "att_goals_sum": 10.0,
+    "att_exp_sum": 7.26649015756111,
+    "def_goals_sum": 2.0,
+    "def_exp_sum": 2.2726188805773124,
+    "n": 3
+  },
+  "Senegal": {
+    "att_goals_sum": 8.0,
+    "att_exp_sum": 3.269624079009783,
+    "def_goals_sum": 6.0,
+    "def_exp_sum": 5.297615473259119,
+    "n": 3
+  },
+  "Iraq": {
+    "att_goals_sum": 1.0,
+    "att_exp_sum": 2.5061291331973576,
+    "def_goals_sum": 12.0,
+    "def_exp_sum": 6.759319275845612,
+    "n": 3
+  },
+  "Norway": {
+    "att_goals_sum": 8.0,
+    "att_exp_sum": 4.867083899421689,
+    "def_goals_sum": 7.0,
+    "def_exp_sum": 3.579773639507896,
+    "n": 3
+  },
+  "Argentina": {
+    "att_goals_sum": 8.0,
+    "att_exp_sum": 8.133811243935389,
+    "def_goals_sum": 1.0,
+    "def_exp_sum": 2.0145104462063417,
+    "n": 3
+  },
+  "Algeria": {
+    "att_goals_sum": 5.0,
+    "att_exp_sum": 3.2941097161321533,
+    "def_goals_sum": 7.0,
+    "def_exp_sum": 5.314059044707109,
+    "n": 3
+  },
+  "Austria": {
+    "att_goals_sum": 6.0,
+    "att_exp_sum": 4.212522418969723,
+    "def_goals_sum": 6.0,
+    "def_exp_sum": 4.151424787534431,
+    "n": 3
+  },
+  "Jordan": {
+    "att_goals_sum": 3.0,
+    "att_exp_sum": 2.6213957810205435,
+    "def_goals_sum": 8.0,
+    "def_exp_sum": 6.781844881609926,
+    "n": 3
+  },
+  "Portugal": {
+    "att_goals_sum": 6.0,
+    "att_exp_sum": 6.932246123607774,
+    "def_goals_sum": 1.0,
+    "def_exp_sum": 2.3840177628630563,
+    "n": 3
+  },
+  "Congo DR": {
+    "att_goals_sum": 1.0,
+    "att_exp_sum": 2.939865347711878,
+    "def_goals_sum": 2.0,
+    "def_exp_sum": 5.878014179062674,
+    "n": 3
+  },
+  "Uzbekistan": {
+    "att_goals_sum": 1.0,
+    "att_exp_sum": 2.8377263794528824,
+    "def_goals_sum": 8.0,
+    "def_exp_sum": 5.8999654868363205,
+    "n": 3
+  },
+  "Colombia": {
+    "att_goals_sum": 4.0,
+    "att_exp_sum": 4.90073061731274,
+    "def_goals_sum": 1.0,
+    "def_exp_sum": 3.4485710393232223,
+    "n": 3
+  },
+  "England": {
+    "att_goals_sum": 6.0,
+    "att_exp_sum": 7.10965373198833,
+    "def_goals_sum": 2.0,
+    "def_exp_sum": 2.380284448457575,
+    "n": 3
+  },
+  "Croatia": {
+    "att_goals_sum": 5.0,
+    "att_exp_sum": 5.095960228985896,
+    "def_goals_sum": 5.0,
+    "def_exp_sum": 3.3980151040771105,
+    "n": 3
+  },
+  "Ghana": {
+    "att_goals_sum": 2.0,
+    "att_exp_sum": 3.426142755698333,
+    "def_goals_sum": 2.0,
+    "def_exp_sum": 5.058057574778061,
+    "n": 3
+  },
+  "Panama": {
+    "att_goals_sum": 0.0,
+    "att_exp_sum": 2.359011449452486,
+    "def_goals_sum": 4.0,
+    "def_exp_sum": 7.154411038812298,
+    "n": 3
+  }
+}

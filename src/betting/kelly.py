@@ -20,6 +20,8 @@ def remove_margin(probs_raw: list[float]) -> list[float]:
 def kelly_fraction(model_prob: float, decimal_odds: float) -> float:
     """Full Kelly * KELLY_FRACTION."""
     b = decimal_odds - 1
+    if b <= 0:
+        return 0.0
     q = 1 - model_prob
     f = (b * model_prob - q) / b
     return max(0.0, f * KELLY_FRACTION)
@@ -43,8 +45,8 @@ def build_portfolio(bets: list[dict], bankroll: float) -> list[dict]:
 
     for bet in bets:
         bet["stake"] = round(bet["raw_stake"] * scale, 0)
-        b = bet["decimal_odds"] - 1
-        bet["edge"] = bet["model_prob"] - 1 / bet["decimal_odds"]
-        bet["ev"] = bet["edge"] * b * bet["stake"]
+        market_true = bet.get("market_true", 1 / bet["decimal_odds"])
+        bet["edge"] = bet["model_prob"] - market_true
+        bet["ev"] = (bet["model_prob"] * bet["decimal_odds"] - 1) * bet["stake"]
 
     return sorted(bets, key=lambda x: -x["ev"])

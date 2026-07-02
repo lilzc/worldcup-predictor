@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# 赔率缓存（不进版本库）
+data/cache/
+
+# Claude Code 内部
+.claude/
+
+# 输出目录（生成物，非源码）
+output/
