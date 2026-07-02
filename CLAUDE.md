@@ -61,6 +61,15 @@ commit message 格式：
 - `ARTIFACT_KILL`：当前 20%（模型-市场gap≥20%时硬杀，比ARTIFACT_GAP=8%更严格的一层）。**来源不明：无回测依据，CLAUDE.md首次记录**。2026-07-03对账：walkforward 28场 0次触发（gap≥20%零命中）。ARTIFACT_GAP=8%的来源是Uruguay AH案例，但20%是另行添加的数字，来源无记录。未来调整须先立spec走fence zone同款流程。
 - `UNDER_MKTOVER_KILL`：当前 52%（Under盘：市场Over隐含≥52%且模型Under>50%时kill）。**来源不明：无回测依据，CLAUDE.md首次记录**。2026-07-03对账：walkforward 28场触发2注（Germany/Ivory Coast 小2.75 LOSE，Ecuador/Germany 小2.5 LOSE），两注均为LOSE，kill方向正确，但N=2无统计效力。逻辑可辩护（市场强烈看涨时模型押Under可能是GSV低估进攻artifact），但52%和50%两个阈值均无文档来源。未来调整须先立spec走fence zone同款流程。
 
+## 当日 PDF 入口规则（强制，2026-07-03）
+
+**当日预测唯一入口：`python3 predict_market.py --auto-today`（the-odds-api 拉赔率+自动情报+PDF）。**
+`MANUAL_MATCHES`（`today.py` 手填区）为过期小组赛快照，2026-07-03 封存，勿更新勿新增。
+`predict_market.py --auto` 为 LEGACY 重放模式（有显著警告头），**禁止用于当日预测**。
+裸跑 `python3 predict_market.py` 现已重定向至提示，不再默认落入手填路径。
+
+**事故记录（2026-07-03）**：模糊指令"跑今天的 PDF"落入 `today.py` 老路径，触发向用户索要人肉赔率数据，属系统性流程错误，非用户操作问题。
+
 ## 推单输出规则（强制）
 
 **所有正式推单必须来自 `python3 today.py`，不允许用临时脚本或 ad-hoc 代码替代。**

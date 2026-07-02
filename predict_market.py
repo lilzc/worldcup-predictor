@@ -8,10 +8,10 @@ B 系统与 A 系统（today.py / predict.py）物理隔离：
 - 合并展示仅在本文件末尾的分歧栏（单向只读 A 的推单标签）
 
 用法:
-  python3 predict_market.py             — 当日 B 预测 + A-vs-B 分歧（手填 MANUAL_MATCHES）
+  python3 predict_market.py --auto-today— 当日预测唯一入口：API拉赔率+情报+PDF（无需手填）
   python3 predict_market.py --hist      — 历史 ROI 诊断（walkforward 赔率）
-  python3 predict_market.py --auto      — 手填 MANUAL_MATCHES + 自动搜情报 + λ调整
-  python3 predict_market.py --auto-today— API 自动拉今日赛程+赔率 + 自动搜情报（一条命令）
+  python3 predict_market.py --auto      — ⚠ LEGACY：MANUAL_MATCHES手填重放+情报，禁止用于当日预测
+  python3 predict_market.py             — 重定向到 --auto-today 提示（裸跑不落手填路径）
 """
 import sys
 import argparse
@@ -635,9 +635,10 @@ def run_hist_roi_diagnostic():
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--hist",       action="store_true", help="历史 ROI 诊断")
-    parser.add_argument("--auto",       action="store_true", help="手填赛程 + 自动情报（DDG）")
+    parser.add_argument("--auto",       action="store_true",
+                        help="[LEGACY] MANUAL_MATCHES手填重放+情报，禁止当日预测")
     parser.add_argument("--auto-today", action="store_true", dest="auto_today",
-                        help="API 拉今日赛程+赔率 + 自动情报（一条命令，无需手填）")
+                        help="当日预测唯一入口：API拉今日赔率+情报+PDF")
     args = parser.parse_args()
 
     if args.hist:
@@ -648,13 +649,26 @@ def main():
         run_auto_today()
         return
 
-    # 当日 B 预测
+    # 裸跑（无参数）→ 提示正确入口，拒绝落入 MANUAL_MATCHES
+    if not args.auto:
+        print(f"\n{'═'*70}")
+        print(f"  当日预测唯一入口: python3 predict_market.py --auto-today")
+        print(f"  裸跑已禁止落入 MANUAL_MATCHES（过期快照，2026-07-03 封存）")
+        print(f"  如需历史场次重放: python3 predict_market.py --auto  (LEGACY)")
+        print(f"  如需历史 ROI 诊断: python3 predict_market.py --hist")
+        print(f"{'═'*70}")
+        return
+
+    # ── LEGACY --auto 重放路径 ──────────────────────────────────────────────
     from today import MANUAL_MATCHES, run_matches, BANKROLL
 
     print(f"\n{'═'*70}")
+    print(f"  ⚠ LEGACY: --auto 模式仅供指定场次重放/回测，禁止用于当日预测")
+    print(f"  ⚠ 当日预测唯一入口 = python3 predict_market.py --auto-today")
+    print(f"  ⚠ MANUAL_MATCHES 为过期小组赛快照（2026-07-03 封存），数据已失效")
+    print(f"{'─'*70}")
     print(f"  {DISCLAIMER}")
-    if args.auto:
-        print(f"  ⚠ --auto 模式：情报由 DDG 搜索，多源交叉但可能含过时信息，关键注单请自行核验。")
+    print(f"  ⚠ 情报由 DDG 搜索，多源交叉但可能含过时信息，关键注单请自行核验。")
     print(f"{'═'*70}")
     print(f"  B系统 = B1 路线（λ 来自市场 1X2 赔率反解，选项 B：只拟合主客胜）")
     print(f"  平局及所有下游概率由反解 λ 的 DC score_matrix 统一产出")

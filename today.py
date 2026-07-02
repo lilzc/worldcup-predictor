@@ -21,7 +21,9 @@ from config import (BANKROLL, ODDS_API_KEY, MIN_EDGE, TEAM_ELO,
                     NEAR_EQUAL_OU_OVER_DIFF,
                     OU_FENCE_WITH_ELO, FENCE_ELO_DIFF_CAP)
 
-# ── 手动赔率 ────────────────────────────────────────────────────────────────
+# ── 手动赔率（LEGACY 重放专用） ─────────────────────────────────────────────
+# ⚠ 过期小组赛快照，仅历史重放用，勿更新，勿新增。
+# 当日预测唯一入口：python3 predict_market.py --auto-today
 # AH: {line: (home_odds, away_odds)}  line=正数表示主队让球
 # ou_odds: {line: (over_odds, under_odds)}
 # cs_odds: {"hg-ag": decimal_odds}
