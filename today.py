@@ -6,7 +6,9 @@ python3 today.py --bankroll 5000  — 临时覆盖本金
 """
 
 import sys
+import json
 import argparse
+from pathlib import Path
 sys.path.insert(0, ".")
 
 from predict import predict
@@ -14,6 +16,7 @@ from src.betting.kelly import american_to_decimal
 from config import (BANKROLL, ODDS_API_KEY, MIN_EDGE, TEAM_ELO,
                     GSV_LAMBDA_ELO_MIN, GSV_LAMBDA_DIFF_MIN, GSV_LAMBDA_DIFF_MAX,
                     GSV_LAMBDA_DIFF_EXTENDED,
+                    GSV_LAMBDA_FACTOR, GSV_LAMBDA_FACTOR_EXTENDED,
                     NEAR_EQUAL_AH_DIFF, NEAR_EQUAL_1X2_WIN_DIFF,
                     NEAR_EQUAL_OU_OVER_DIFF,
                     OU_FENCE_WITH_ELO, FENCE_ELO_DIFF_CAP)
@@ -238,6 +241,106 @@ def _print_dc_nonconsensus(
     print(f"       凭据: GSV触发({zone_str}) | 未经kill关卡(组合方向无适用规则)")
     print(f"       ⚠ 无真实DC盘口赔率，edge基于无水近似，真实盘口含vig≈2-4%，可下注edge需下调")
     print(f"       GSV假想追踪: python3 -m src.analysis.gsv_shadow_tracker --report")
+
+
+# GSV 1X2 实验假设对照日期基准（样本外计数起点）
+_GSV_OOS_CUTOFF = "2026-07-03"
+_GSV_OOS_THRESHOLD = 8
+
+
+def _count_oos_gsv_n() -> int:
+    """读 gsv_shadow_log.jsonl，统计 _GSV_OOS_CUTOFF 之后的样本外场次数。"""
+    log_path = Path("data/gsv_shadow_log.jsonl")
+    if not log_path.exists():
+        return 0
+    n = 0
+    try:
+        with open(log_path, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    r = json.loads(line)
+                    if r.get("date", "") > _GSV_OOS_CUTOFF:
+                        n += 1
+                except Exception:
+                    pass
+    except Exception:
+        pass
+    return n
+
+
+def _compute_gsv_legacy_dc_edge(home: str, away: str, strong: str,
+                                 dc_market_prob: float) -> float:
+    """计算 GSV 应用于完整 1X2 矩阵（实验假设路径）的 DC edge。
+    此路径与 walkforward legacy 模式一致，非当前生产设计。
+    """
+    from src.models.poisson import score_matrix, matrix_to_probs, get_elo as _get_elo
+    from src.models.adjustments import apply_all
+    live = _get_elo()
+    he = live.get(home, TEAM_ELO.get(home, 1700))
+    ae = live.get(away, TEAM_ELO.get(away, 1700))
+    diff = he - ae
+    lh = la = 1.0
+    if he > GSV_LAMBDA_ELO_MIN and GSV_LAMBDA_DIFF_MIN <= diff <= GSV_LAMBDA_DIFF_MAX:
+        lh = GSV_LAMBDA_FACTOR
+    elif ae > GSV_LAMBDA_ELO_MIN and GSV_LAMBDA_DIFF_MIN <= -diff <= GSV_LAMBDA_DIFF_MAX:
+        la = GSV_LAMBDA_FACTOR
+    elif he > GSV_LAMBDA_ELO_MIN and GSV_LAMBDA_DIFF_MAX < diff <= GSV_LAMBDA_DIFF_EXTENDED:
+        lh = GSV_LAMBDA_FACTOR_EXTENDED
+    elif ae > GSV_LAMBDA_ELO_MIN and GSV_LAMBDA_DIFF_MAX < -diff <= GSV_LAMBDA_DIFF_EXTENDED:
+        la = GSV_LAMBDA_FACTOR_EXTENDED
+    mat_gsv = score_matrix(home, away, lam_scale_home=lh, lam_scale_away=la)
+    raw_gsv = matrix_to_probs(mat_gsv)
+    adj_gsv = apply_all(home, away, raw_gsv["home_win"], raw_gsv["draw"], raw_gsv["away_win"],
+                        home_elo=he, away_elo=ae)
+    leg_hw = adj_gsv.get("home_win", raw_gsv["home_win"])
+    leg_d  = adj_gsv.get("draw",     raw_gsv["draw"])
+    leg_aw = adj_gsv.get("away_win", raw_gsv["away_win"])
+    if strong == home:
+        dc_legacy = leg_d + leg_aw
+    else:
+        dc_legacy = leg_hw + leg_d
+    return dc_legacy - dc_market_prob
+
+
+def _print_gsv_experiment_line(
+    home: str, away: str,
+    prod_hw: float, prod_d: float, prod_aw: float,
+    cfg: dict,
+) -> None:
+    """GSV 1X2 实验假设对照行（对所有 GSV 触发场次展示，不受 NONCONSENSUS_DC_EDGE 门槛限制）。
+    并列打印生产路径 DC edge 与全矩阵 GSV 假设路径 DC edge，固定标注"实验假设，非生产观点"。
+    纯展示，不进非共识标注体系，不带任何推荐色彩。
+    样本外 N 达 _GSV_OOS_THRESHOLD 且立 spec 裁决后，此行按裁决转正或删除。
+    """
+    gsv = _gsv_trigger_info(home, away)
+    if not gsv["triggered"]:
+        return
+    odds_h = cfg.get("odds_home", 0)
+    odds_d = cfg.get("odds_draw", 0)
+    odds_a = cfg.get("odds_away", 0)
+    if not (odds_h and odds_d and odds_a):
+        return
+    vig = 1/odds_h + 1/odds_d + 1/odds_a
+    mkt_hw = (1/odds_h) / vig
+    mkt_d  = (1/odds_d) / vig
+    mkt_aw = (1/odds_a) / vig
+    strong = gsv["strong"]
+    if strong == home:
+        dc_prod   = prod_d  + prod_aw
+        dc_market = mkt_d   + mkt_aw
+    else:
+        dc_prod   = prod_hw + prod_d
+        dc_market = mkt_hw  + mkt_d
+    edge_prod   = dc_prod - dc_market
+    edge_legacy = _compute_gsv_legacy_dc_edge(home, away, strong, dc_market)
+    n_oos = _count_oos_gsv_n()
+    print(f"    ℹ GSV参考: 若GSV应用于1X2(实验假设,非生产设计)"
+          f",弱方不败edge为{edge_legacy*100:+.1f}pp"
+          f" | 生产设计下该edge为{edge_prod*100:+.1f}pp"
+          f" | 该假设由GSV追踪器验证中(样本外N={n_oos}/{_GSV_OOS_THRESHOLD})")
 
 
 def _hybrid_rule2_kill(home: str, away: str) -> tuple[bool, str]:
@@ -490,10 +593,15 @@ def best_bets_report(all_match_results: list[dict], matches: list[dict] = None):
 
             grand_bets.extend(b for b in passed if b["conf"] != "LOW")
 
-        # DC 非共识标注（仅 GSV 触发场次）
+        # DC 非共识标注 + GSV 1X2 实验假设对照（仅 GSV 触发场次）
         _bbr_m = _bbr_cfg.get((home, away), {})
         _bbr_probs = result.get("probs", {}) if isinstance(result, dict) else {}
         _print_dc_nonconsensus(
+            home, away,
+            _bbr_probs.get("home_win", 0), _bbr_probs.get("draw", 0), _bbr_probs.get("away_win", 0),
+            _bbr_m,
+        )
+        _print_gsv_experiment_line(
             home, away,
             _bbr_probs.get("home_win", 0), _bbr_probs.get("draw", 0), _bbr_probs.get("away_win", 0),
             _bbr_m,
@@ -589,8 +697,13 @@ def stable_bets_report(all_match_results: list[dict], matches: list[dict]):
             print(f"    稳单  {lbl:<22} @{odds:.2f}  模型{mp*100:.1f}%  "
                   f"edge{edge*100:+.1f}%{_edge_tag(edge)}{draw_warn}{bus_zone_warn}")
 
-        # ── DC 非共识标注（仅 GSV 触发场次）───────────────────────────
+        # ── DC 非共识标注 + GSV 1X2 实验假设对照（仅 GSV 触发场次）──
         _print_dc_nonconsensus(
+            home, away,
+            probs.get("home_win", 0), probs.get("draw", 0), probs.get("away_win", 0),
+            cfg,
+        )
+        _print_gsv_experiment_line(
             home, away,
             probs.get("home_win", 0), probs.get("draw", 0), probs.get("away_win", 0),
             cfg,
