@@ -56,8 +56,7 @@ commit message 格式：
 - `NEAR_EQUAL_OU_OVER_DIFF`：当前 100（2026-06-28新增，Elo差≤100时禁止OU Over line<2.5推单）。三方案回测（18场walkforward+2场06-27实证）：A=Kill全部ROI+58.1%；B=不加规则ROI+51.5%；C=Kill line<2.5 ROI+59.5% P&L+1131（最优）。历史近平场次Over线≥2.5全部WIN（England/Croatia 2.75、NZ/Egypt 2.5、Norway/Senegal 3.0），06-27 Uruguay/Spain Over 2.25 LOSS被正确Kill。改动需对比diff≤100场次OU Over分线段ROI。
 - `OU_FENCE_WITH_ELO`：当前 True（2026-07-02从False改为True）。**开启依据：范围 bug 修复，不追 ROI。** 原实现将"均衡场次Elo差±50"的 fence zone kill 泛化到所有场次（无Elo差条件），方案A还原设计意图：仅 `abs(Elo差)≤FENCE_ELO_DIFF_CAP` 时触发 fence kill。X=50 来自原始依据字面表述"Elo差±50"，非扫描拟合。验证：近平保护完整（3/3 LOSE 仍被kill），Brier 0.4296 不变，无前视引入，N=7 诊断仅证明无恶化不证明收益。若7注回流结果反转，开关不因此回滚。改动需说明原始设计意图变化，不能以ROI为由回退。
 - `FENCE_ELO_DIFF_CAP`：当前 50（与 OU_FENCE_WITH_ELO 联动）。X=50 来自"均衡场次Elo差±50"原始设计依据，非扫描拟合。改动需提供新的设计依据字面来源，不能扫描历史ROI拟合。
-- `DRAW_MIN_PROB`：当前 35%。**候选泛化项（fence zone 同类，2026-07-03对账识别）。** 设立依据"Poisson高估平局"仅在20-25%区间成立（72场实测：实际发生率0%）；25-30%区间模型已准确（模型27.9% vs 实际26.9%）；30%以上模型系统性低估平局（30-35%: +4.8pp，35-40%: +5.4pp），规则在依据反转的区间继续执行。当前不修的原因：样本不足（N=37，25-35%区间）+ DRAW_MIN_EDGE=7%双重压制下修复收益无法单独量化，**非冲击小**。注意"平局候选少"部分是本规则压制的结果，不得用候选量少论证规则无害（循环论证）。待淘汰赛平局样本积累后重跑分区间统计，若低估图案持续 → 立spec下调门槛至~25-28%并重评7% edge门槛，走fence zone同款流程（spec→implement→walkforward对比→确认→integrate）。
-- `DRAW_MIN_EDGE`：当前 7%（平局专项更高边际门槛）。来源：注释"结构性高估补偿"。**矛盾待查**：DRAW_MIN_PROB对账显示30%以上平局模型低估，若低估图案成立则"高估补偿"逻辑在≥35%平局上反向——未来与DRAW_MIN_PROB同步重评。
+- `DRAW_MIN_PROB`：当前 35%。`DRAW_MIN_EDGE`：当前 7%。**⚠ 两参数挂起，等待统一评估，见"平局生成与表达问题（收敛病灶）"备忘条目，不单独修。**
 - `WIN_MIN_PROB`：当前 25%（1X2胜注模型概率低于此值时kill）。**来源不明：无回测依据，CLAUDE.md首次记录**。2026-07-03对账：walkforward 28场无[20-25%)触发，规则未实际执行。逻辑可辩护（低概率高赔率注方差大），但25%阈值本身未经验证。未来调整须先立spec走fence zone同款流程。
 - `ARTIFACT_KILL`：当前 20%（模型-市场gap≥20%时硬杀，比ARTIFACT_GAP=8%更严格的一层）。**来源不明：无回测依据，CLAUDE.md首次记录**。2026-07-03对账：walkforward 28场 0次触发（gap≥20%零命中）。ARTIFACT_GAP=8%的来源是Uruguay AH案例，但20%是另行添加的数字，来源无记录。未来调整须先立spec走fence zone同款流程。
 - `UNDER_MKTOVER_KILL`：当前 52%（Under盘：市场Over隐含≥52%且模型Under>50%时kill）。**来源不明：无回测依据，CLAUDE.md首次记录**。2026-07-03对账：walkforward 28场触发2注（Germany/Ivory Coast 小2.75 LOSE，Ecuador/Germany 小2.5 LOSE），两注均为LOSE，kill方向正确，但N=2无统计效力。逻辑可辩护（市场强烈看涨时模型押Under可能是GSV低估进攻artifact），但52%和50%两个阈值均无文档来源。未来调整须先立spec走fence zone同款流程。
@@ -125,7 +124,11 @@ commit message 格式：
 - 40-60%校准区间持续低估：模型在此区间预测46-55%但实际70-73%，对中等强度优势队注意赔率
 - FORM_WEIGHT=0.10：形态因子权重减半（从0.20），俱乐部状态在WC迁移率低
 - 20-30%校准区间结构性偏差：模型在此区间分配24%，实际发生率9.8%（41样本）——平局预测与实际平局触发事件不相关，这是Poisson模型对平局的结构性局限，参数调整无法根治
-- **平局分区间画像（2026-07-03对账，72场无前视）**：20-25% 高估（模型22.8%，实际0%）/ 25-30% 准确（模型27.9%，实际26.9%）/ 30-35% 低估（模型31.6%，实际36.4%）/ 35-40% 低估（模型37.4%，实际42.9%）——与既有"平局整体结构性低估（模型均值24.5% < 实际29.6%）"一致，首次分区间定位。高估集中在20-25%区间，30%以上全部低估。未来若动DC_RHO或平局校准，以此分区间表为基线；动DRAW_MIN_PROB前须先重跑此统计确认低估图案持续。
+- **平局生成与表达问题（收敛病灶，2026-07-03合并三条挂起项）**：三个现象同源，解封条件统一，届时立**单个spec**一起评估，不分开修。
+  1. **平局分区间画像（分布根因）**：20-25% 高估（实际0%）/ 25-30% 准确 / 30-35% 低估(+4.8pp) / 35-40% 低估(+5.4pp)。高估仅在20-25%区间，30%以上全面低估。`DRAW_MIN_PROB=35%`的"Poisson高估补偿"设立依据在≥30%区间已反向，规则执行方向与实证矛盾。`DRAW_MIN_EDGE=7%`来源"高估补偿"，同样须与DRAW_MIN_PROB一起重评。当前不动原因：样本N=37不足 + 两参数双重压制下独立信号无法量化（"候选少"是本规则压制结果，不得用循环论证规则无害）。
+  2. **GSV压λ后概率质量灌入平局（表达错位）**：GSV触发时强队λ×0.80，Poisson把概率质量转移到平局方向（Turkey-USA: walkforward路径平局39.5% vs 预期生产路径32.5%）。**两路径不一致已确认**：walkforward._build_mat_custom将GSV应用于完整矩阵（含1X2），predict.py按设计只对AH/OU应用GSV；两路径DC edge差值=+7.5pp(WF) vs -4.8pp(predict.py)。生产路径(today.py)的DC非共识标注因此不触发。4场A-B分歧比赛（Netherlands/Sweden, Paraguay/Australia, Norway/France, Colombia/Portugal）全为diff 58-120的**非GSV触发场次**（diff<150），是基础Poisson在中等Elo差段的结构性平局高估，与GSV机制无关。GSV表达错位目前仅Turkey-USA单案例。
+  3. **DRAW_MIN_PROB泛化路径**：待淘汰赛平局样本积累后重跑分区间统计，若低估图案持续 → 下调DRAW_MIN_PROB至~25-28%，同步重评DRAW_MIN_EDGE，同步评估DC出口可行性，走fence zone同款流程（spec→implement→walkforward对比→确认→integrate）。
+  **解封条件（沿用GSV追踪器门槛）**：2026-07-03后新增GSV触发场次≥8且样本外DC假想ROI为正。届时三件事一起立spec，不分开动。
 - AH raw-Poisson λ膨胀：Elo差150-300区间已用GSV_LAMBDA_FACTOR=0.80修正（Uruguay 2.31→1.85，Belgium 2.18→1.75），Elo差>300场次（Spain vs Qatar等）修正不触发，仍依赖ARTIFACT_GAP=0.08拦截
 - 均衡场次O/U fence：Elo差±50范围内7/7场Under 2.5（0球到2球），O/U fence zone已配置[44%,57%]拦截
 - 大Elo差（170-330）平局频率33%：模型平均低估到20%——强队对弱队非线性防守效应（巴士战术），AH -1.5未覆盖率39%（7/18场），Elo差200-330是高危区间。稳单在此区间直胜判断6/6全亏（Belgium×2, Portugal, Ecuador, Uruguay, England），GSV修正了Edge/OU但未修正稳单1X2方向。
@@ -138,7 +141,7 @@ commit message 格式：
   2. 攻防分解在淘汰赛起生效（每队已有≥3场小组赛记录）。λ偏差量级：如Norway/France Over2.5 55.6%→78.4%，England/Colombia 52.5%→37.4%，信号方向合理但无真实淘汰赛结果可验证准确率。
   3. backtest 显示 Brier 0.4854→0.4296（含前视：用了全72场最终AD state）——这个数字含前视污染，**不作为AD因子有效性的证据**。干净证据以无前视walkforward/实际淘汰赛结果为准，当前状态为"淘汰赛信号待验证"。
   - AD参数改动需同时验证：AD_BLEND_WEIGHT改动对比淘汰赛ROI；AD_SHRINKAGE_K改动对比λ偏离量；AD_MIN_MATCHES降低需说明噪声代价（n=2+K=8收缩后因子偏离量≤20%，代价高于信号）。
-- **Turkey-USA 案例（第60场，2026-06-26 重放）：** GSV 触发（USA Elo 1869, diff=158）后 A 与市场大分歧（USA胜 40.8% vs 市场48.3%；平局 39.5% vs 25.1%），分歧方向被实际结果支持（Turkey 3-2）。但信号表达集中于"平局"单一出口（Poisson 压 λ 的数学结果），Turkey胜方向 edge 为负（-6.8pp）；若存在"双重机会 1X"盘口，A 持有 +7.6pp 正 edge 且该标的实际兑现。平局注 gap=12.9%>8% 被 LOW 拦截是**零代价的正确拦截**——分歧方向（"USA不会轻松赢"）正确，但被拦标的（平局）本身若下会 LOSE（Turkey 3-2 胜，平局落空）；方向对≠标的对，gap 拦截本场无代价。真正兑现的承接标的（1X/Turkey胜）不在当前盘口清单或 edge 为负。**结构性猜想：GSV 类压制信号的自然承接盘口是弱方AH/双重机会/不败，当前盘口清单无此出口。单场案例，不构成改动依据；由 GSV 假想追踪器（`data/gsv_shadow_log.jsonl`，`python3 -m src.analysis.gsv_shadow_tracker --report`）自动积累证据。**解封条件（2026-07-03修订）：回填 24 场（同池，猜想来源期）仅作参考，不构成有效验证；解封需猜想成形后（2026-07-03 起）的新增 GSV 触发场次 ≥8，且新增样本 DC 假想无水 ROI 为正。AH+0.5 方向已审计计算无误，+115.5% 为样本期冷门密集（6注=14注里命中率最高的子集，非随机抽样），不具持续性，同标准解封。届时立 spec 走 fence zone 流程。**
+- **Turkey-USA 案例（第60场，2026-06-26 重放）：** GSV 触发（USA Elo 1869, diff=158）后 A 与市场大分歧（USA胜 40.8% vs 市场48.3%；平局 39.5% vs 25.1%），分歧方向被实际结果支持（Turkey 3-2）。但信号表达集中于"平局"单一出口（Poisson 压 λ 的数学结果），Turkey胜方向 edge 为负（-6.8pp）；若存在"双重机会 1X"盘口，A 持有 +7.5pp 正 edge（walkforward路径计算：DC1X=59.2% vs 市场51.7%）且该标的实际兑现。平局注 gap=14.4%>8% 被 LOW 拦截是**零代价的正确拦截**——分歧方向（"USA不会轻松赢"）正确，但被拦标的（平局）本身若下会 LOSE（Turkey 3-2 胜，平局落空）；方向对≠标的对，gap 拦截本场无代价。真正兑现的承接标的（1X/Turkey胜）不在当前盘口清单或 edge 为负。**⚠ 两路径DC edge不一致已确认（2026-07-03）**：walkforward._build_mat_custom将GSV λ×0.8应用于完整1X2矩阵（平局39.5%），predict.py/today.py按设计仅对AH/OU应用GSV（平局32.5%）；生产路径DC edge=-4.8pp，非共识标注不触发。"+7.5pp"来源walkforward路径，不代表生产推单能捕获此信号。**DC出口猜想作为挂起项并入"平局生成与表达问题（收敛病灶）"，同解封条件：2026-07-03后新增GSV触发场次≥8且DC ROI为正。**届时立 spec 走 fence zone 流程。AH+0.5方向已审计：+115.5% 为样本期冷门密集6注子集，不可持续，同标准解封。
 
 ## 运营态基准快照（2026-07-03，N=72场小组赛，搭建期收官）
 
