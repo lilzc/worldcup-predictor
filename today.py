@@ -130,6 +130,11 @@ ARTIFACT_GAP    = 0.08  # 模型-市场差 8-20% → LOW 警告
 CS_MIN_EDGE     = 0.08  # 正确比分需更高边际（高方差市场）
 UNDER_MKTOVER_KILL = 0.52  # Under 盘：市场Over隐含>52% 而模型仍押Under → artifact（GSV低估进攻）
 
+# DC 非共识边际阈值（独立参数，注释"待 GSV 追踪器样本校准"）
+# 组合概率天然量级大(50-90%)，同绝对pp在DC上信息量低于1X2，故比MIN_EDGE略高
+# 仅 GSV 触发场次开口（弱方不败方向），防止全场泛滥成噪声
+NONCONSENSUS_DC_EDGE = 0.07  # 待 GSV 追踪器 N≥30 后校准
+
 
 def _market_implied(dec_odds: float) -> float:
     return 1.0 / dec_odds
@@ -155,6 +160,84 @@ def _print_news_flags(flags: list, compact: bool = False) -> None:
             print(f"    {icon} {label}: {detail}" if detail else f"    {icon} {f}")
         print(f"  [模型λ未修正 — 推单结论需结合情报人工判断]")
         print(f"  {'─'*46}")
+
+
+def _gsv_trigger_info(home: str, away: str) -> dict:
+    """GSV 触发检查（使用动态 elo_state.json，与 predict() 内部口径一致）。
+    注意：kill 关卡（_hybrid_rule2_kill / 近平压制）仍用静态 TEAM_ELO；
+    DC 标注使用动态 Elo，使 GSV 触发判断与 score_matrix 内部一致。
+    返回 dict：triggered / zone / strong / weak / diff / diff_abs
+    """
+    from src.models.poisson import get_elo as _get_elo
+    _live = _get_elo()
+    he = _live.get(home, TEAM_ELO.get(home, 1700))
+    ae = _live.get(away, TEAM_ELO.get(away, 1700))
+    diff = he - ae
+    gsv_std_h = he > GSV_LAMBDA_ELO_MIN and GSV_LAMBDA_DIFF_MIN <= diff <= GSV_LAMBDA_DIFF_MAX
+    gsv_std_a = ae > GSV_LAMBDA_ELO_MIN and GSV_LAMBDA_DIFF_MIN <= -diff <= GSV_LAMBDA_DIFF_MAX
+    gsv_ext_h = (he > GSV_LAMBDA_ELO_MIN
+                 and GSV_LAMBDA_DIFF_MAX < diff <= GSV_LAMBDA_DIFF_EXTENDED)
+    gsv_ext_a = (ae > GSV_LAMBDA_ELO_MIN
+                 and GSV_LAMBDA_DIFF_MAX < -diff <= GSV_LAMBDA_DIFF_EXTENDED)
+    triggered = gsv_std_h or gsv_std_a or gsv_ext_h or gsv_ext_a
+    if not triggered:
+        return {"triggered": False}
+    zone = "standard" if (gsv_std_h or gsv_std_a) else "extended"
+    if gsv_std_h or gsv_ext_h:
+        strong, weak = home, away
+    else:
+        strong, weak = away, home
+    return {
+        "triggered": True, "zone": zone,
+        "strong": strong, "weak": weak,
+        "diff": diff, "diff_abs": abs(diff),
+    }
+
+
+def _print_dc_nonconsensus(
+    home: str, away: str,
+    model_hw: float, model_d: float, model_aw: float,
+    cfg: dict,
+) -> None:
+    """DC 非共识标注。仅 GSV 触发场次且弱方DC edge ≥ NONCONSENSUS_DC_EDGE 时输出。
+    纯展示层，不影响任何推单 / Kelly / portfolio。
+    """
+    gsv = _gsv_trigger_info(home, away)
+    if not gsv["triggered"]:
+        return
+    odds_h = cfg.get("odds_home", 0)
+    odds_d = cfg.get("odds_draw", 0)
+    odds_a = cfg.get("odds_away", 0)
+    if not (odds_h and odds_d and odds_a):
+        return
+
+    vig = 1/odds_h + 1/odds_d + 1/odds_a
+    mkt_hw = (1/odds_h) / vig
+    mkt_d  = (1/odds_d) / vig
+    mkt_aw = (1/odds_a) / vig
+
+    strong, weak = gsv["strong"], gsv["weak"]
+    zone_str = f"{gsv['zone']},diff={gsv['diff_abs']:.0f}"
+
+    if strong == home:
+        dc_model  = model_d  + model_aw
+        dc_market = mkt_d    + mkt_aw
+        dc_label  = f"{away}不败(X2)"
+    else:
+        dc_model  = model_hw + model_d
+        dc_market = mkt_hw   + mkt_d
+        dc_label  = f"{home}不败(1X)"
+
+    dc_edge = dc_model - dc_market
+    if dc_edge < NONCONSENSUS_DC_EDGE:
+        return
+
+    print(f"    ⚡非共识[DC]: A看好 {dc_label}"
+          f" | 模型{dc_model*100:.1f}% vs 市场{dc_market*100:.1f}%"
+          f" | edge +{dc_edge*100:.1f}pp")
+    print(f"       凭据: GSV触发({zone_str}) | 未经kill关卡(组合方向无适用规则)")
+    print(f"       ⚠ 无真实DC盘口赔率，edge基于无水近似，真实盘口含vig≈2-4%，可下注edge需下调")
+    print(f"       GSV假想追踪: python3 -m src.analysis.gsv_shadow_tracker --report")
 
 
 def _hybrid_rule2_kill(home: str, away: str) -> tuple[bool, str]:
@@ -406,6 +489,15 @@ def best_bets_report(all_match_results: list[dict], matches: list[dict] = None):
                 print(f"    过滤掉 {len(killed)} 注 (最大artifact: {max(b[1] for b in killed)*100:+.1f}%)")
 
             grand_bets.extend(b for b in passed if b["conf"] != "LOW")
+
+        # DC 非共识标注（仅 GSV 触发场次）
+        _bbr_m = _bbr_cfg.get((home, away), {})
+        _bbr_probs = result.get("probs", {}) if isinstance(result, dict) else {}
+        _print_dc_nonconsensus(
+            home, away,
+            _bbr_probs.get("home_win", 0), _bbr_probs.get("draw", 0), _bbr_probs.get("away_win", 0),
+            _bbr_m,
+        )
         killed_summary.append((f"{home} vs {away}", killed))
 
     # ── 全局最优排名 ──────────────────────────────────────────────────────
@@ -496,6 +588,13 @@ def stable_bets_report(all_match_results: list[dict], matches: list[dict]):
         if odds:
             print(f"    稳单  {lbl:<22} @{odds:.2f}  模型{mp*100:.1f}%  "
                   f"edge{edge*100:+.1f}%{_edge_tag(edge)}{draw_warn}{bus_zone_warn}")
+
+        # ── DC 非共识标注（仅 GSV 触发场次）───────────────────────────
+        _print_dc_nonconsensus(
+            home, away,
+            probs.get("home_win", 0), probs.get("draw", 0), probs.get("away_win", 0),
+            cfg,
+        )
 
         # ── OU参考：OU-A（模型概率最高，≥0.48）─────────────────────────
         ou_opts = []

@@ -558,6 +558,41 @@ def run_walkforward(verbose: bool = True, use_ad: bool = None):
                              "model": mo, "mkt": tm, "edge": edge, "gap": gap,
                              "result": f"{hg}-{ag}", "outcome": outcome, "pnl": pv})
 
+        # GSV 假想追踪器旁路（任何异常不中断主流程）
+        if (home, away) in odds_lookup and gsv:
+            try:
+                import math as _math
+                from src.analysis.gsv_shadow_tracker import (
+                    log_gsv_match as _log_gsv, _build_shadow_record as _bsr,
+                )
+                from config import (
+                    GSV_LAMBDA_FACTOR as _GF, GSV_LAMBDA_FACTOR_EXTENDED as _GFE,
+                    BASE_GOALS as _BG, ELO_SCALE as _ES,
+                )
+                _lh = _la = 1.0
+                _d = he - ae
+                if he > GSV_LAMBDA_ELO_MIN and GSV_LAMBDA_DIFF_MIN <= _d <= GSV_LAMBDA_DIFF_MAX:
+                    _lh = _GF
+                elif ae > GSV_LAMBDA_ELO_MIN and GSV_LAMBDA_DIFF_MIN <= -_d <= GSV_LAMBDA_DIFF_MAX:
+                    _la = _GF
+                elif he > GSV_LAMBDA_ELO_MIN and GSV_LAMBDA_DIFF_MAX < _d <= GSV_LAMBDA_DIFF_EXTENDED:
+                    _lh = _GFE
+                elif ae > GSV_LAMBDA_ELO_MIN and GSV_LAMBDA_DIFF_MAX < -_d <= GSV_LAMBDA_DIFF_EXTENDED:
+                    _la = _GFE
+                _zone = "standard" if (_lh == _GF or _la == _GF) else "extended"
+                _bh = _BG * _math.exp(_d / _ES)
+                _ba = _BG * _math.exp(-_d / _ES)
+                _rec = _bsr(
+                    home=home, away=away, date=m.get("date", ""),
+                    he=he, ae=ae, mat=mat, probs=probs, gsv_zone=_zone,
+                    lam_h_base=_bh, lam_a_base=_ba,
+                    lam_h_final=_bh * _lh, lam_a_final=_ba * _la,
+                    hg=hg, ag=ag, odds_entry=odds_lookup[(home, away)],
+                )
+                _log_gsv(_rec)
+            except Exception:
+                pass  # 追踪器错误不中断主流程
+
         # 赛后更新 Elo 和 AD 状态（含当场结果，用于后续场次）
         exp_h = _wf_ad_exp(he, ae)
         exp_a = _wf_ad_exp(ae, he)
