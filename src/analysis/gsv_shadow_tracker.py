@@ -30,10 +30,36 @@ from config import (
 )
 
 DATA_FILE = _ROOT / "data" / "gsv_shadow_log.jsonl"
+_ODDS_HISTORY = _ROOT / "data" / "odds_history.jsonl"
 _VIG_NOTE = (
     "假想ROI基于无水近似价，真实盘口含vig(DC≈2-4%)，"
     "实际可兑现ROI需相应下调"
 )
+
+
+def _odds_history_lookup(home: str, away: str) -> dict | None:
+    """从 odds_history.jsonl 取最近一次 1x2 快照，返回 MATCHES_ODDS 兼容格式。"""
+    if not _ODDS_HISTORY.exists():
+        return None
+    best: dict | None = None
+    with open(_ODDS_HISTORY, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                entry = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            for m in entry.get("matches", []):
+                if m.get("home") == home and m.get("away") == away:
+                    oh = m.get("odds_home")
+                    od = m.get("odds_draw")
+                    oa = m.get("odds_away")
+                    if oh and od and oa:
+                        best = {"1x2": (oh, od, oa), "_source": "odds_history",
+                                "_fetched_at": entry.get("fetched_at", "")}
+    return best
 UNLOCK_N = 8   # 解封条件：≥8 触发场次且假想ROI显著为正（2026-07定档，变更需显式讨论）
 
 # Cohort 边界
@@ -301,6 +327,8 @@ def backfill_history(force: bool = False) -> None:
             mat, probs, _diff, _gsv = _build_mat_custom(home, away, he, ae, ad_state)
 
             odds_entry = odds_lookup.get((home, away))
+            if odds_entry is None:
+                odds_entry = _odds_history_lookup(home, away)
 
             rec = _build_shadow_record(
                 home=home, away=away, date=m["date"],
