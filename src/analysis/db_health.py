@@ -26,7 +26,12 @@ def _load_results() -> list[dict]:
         return json.load(f).get("matches", [])
 
 
-# ── Check 1: 缺失赛果（cache 里有 commence_time 超3小时但 results 无记录）────
+# ── Check 1: 缺失赛果（对照 martj42 CSV 权威赛程，不依赖 odds-api 滚动窗口）───
+# 修复前：只看 cache 里有记录的场次，cache 过期或 API 离线时盲区大。
+# 修复后：以 martj42 国际赛果 CSV 为权威来源，比较已完赛场次是否全部入库。
+
+MARTJ42_CSV_PATH = "data/cache/international_results.csv"
+_WC2026_START    = "2026-06-11"
 
 _COMBINED_NAME_MAP = {
     "United States": "USA",
@@ -56,87 +61,50 @@ def _norm_team(name: str) -> str:
 
 def check_missing_results(matches: list[dict]) -> dict:
     name = "缺失赛果"
-    if not os.path.exists(CACHE_DIR):
-        return {"name": name, "ok": True, "detail": "cache目录不存在，跳过"}
 
-    # Build lookup using canonical names; allow both orientations
-    seen_pairs: set = set()
+    # ── martj42 CSV 对照（权威赛程）──
+    if not os.path.exists(MARTJ42_CSV_PATH):
+        return {"name": name, "ok": True, "detail": "martj42 CSV 缓存不存在，跳过体检"}
+
+    import csv as _csv, io as _io
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+    try:
+        with open(MARTJ42_CSV_PATH, encoding="utf-8") as f:
+            content = f.read()
+    except Exception as e:
+        return {"name": name, "ok": False, "detail": f"读取 martj42 CSV 失败: {e}"}
+
+    # Build DB lookup: team-pair regardless of home/away order
+    db_pairs: set = set()
     for m in matches:
-        h, a, d = m["home"], m["away"], m["date"]
-        seen_pairs.add((d, h, a))
-        seen_pairs.add((d, a, h))
+        key = tuple(sorted([m["home"], m["away"]]))
+        db_pairs.add(key)
 
-    # Build a set of (home, away) pairs in results (regardless of date) for ±1 day check
-    seen_pair_nodates: set = set()
-    for m in matches:
-        h, a = m["home"], m["away"]
-        seen_pair_nodates.add((h, a))
-        seen_pair_nodates.add((a, h))
-
-    now_ts = datetime.now(timezone.utc).timestamp()
+    # Read martj42, filter WC2026 period and past dates
     missing = []
-
-    for fname in os.listdir(CACHE_DIR):
-        if not fname.endswith(".json"):
+    reader = _csv.DictReader(_io.StringIO(content))
+    for row in reader:
+        d = row.get("date", "")
+        if d < _WC2026_START or d > today_str:
             continue
-        fpath = os.path.join(CACHE_DIR, fname)
+        h = _norm_team(row.get("home_team", ""))
+        a = _norm_team(row.get("away_team", ""))
         try:
-            with open(fpath, encoding="utf-8") as f:
-                data = json.load(f)
-        except Exception:
-            continue
-
-        # data can be a list (odds events) or a dict
-        events = data if isinstance(data, list) else []
-        for event in events:
-            commence = event.get("commence_time", "")
-            if not commence:
-                continue
-            try:
-                ct = datetime.fromisoformat(commence.replace("Z", "+00:00")).timestamp()
-            except Exception:
-                continue
-            # Only flag completed matches (started >3h ago)
-            if now_ts - ct < 3 * 3600:
-                continue
-            home = _norm_team(event.get("home_team", ""))
-            away = _norm_team(event.get("away_team", ""))
-            date_str = datetime.fromtimestamp(ct, tz=timezone.utc).strftime("%Y-%m-%d")
-
-            # Check date-exact match first
-            key  = (date_str, home, away)
-            key_r = (date_str, away, home)
-            if key in seen_pairs or key_r in seen_pairs:
-                continue
-
-            # Try ±1 day (UTC timezone ambiguity)
-            from datetime import date as _dateclass, timedelta as _td
-            try:
-                d = _dateclass.fromisoformat(date_str)
-            except Exception:
-                d = None
-            found_nearby = False
-            if d:
-                for delta in (-1, 1):
-                    nd = (d + _td(days=delta)).isoformat()
-                    if (nd, home, away) in seen_pairs or (nd, away, home) in seen_pairs:
-                        found_nearby = True
-                        break
-            if found_nearby:
-                continue
-
-            # Also check no-date pair match (already in results, just different date)
-            if (home, away) in seen_pair_nodates:
-                continue
-
-            missing.append(f"{date_str} {home} vs {away}")
+            int(row.get("home_score", ""))
+            int(row.get("away_score", ""))
+        except (ValueError, TypeError):
+            continue  # 无比分 = 未完赛
+        key = tuple(sorted([h, a]))
+        if key not in db_pairs:
+            missing.append(f"{d}: {h} vs {a}")
 
     if missing:
-        detail = f"{len(missing)}场疑似漏录: " + ", ".join(missing[:5])
+        detail = f"{len(missing)}场漏录(martj42有但DB无): " + ", ".join(missing[:5])
         if len(missing) > 5:
             detail += f" ... (+{len(missing)-5})"
         return {"name": name, "ok": False, "detail": detail}
-    return {"name": name, "ok": True, "detail": "全部覆盖"}
+    return {"name": name, "ok": True, "detail": f"全部覆盖（对照 martj42 CSV，WC2026 {_WC2026_START}起）"}
 
 
 # ── Check 2: 重复记录 ─────────────────────────────────────────────────────────

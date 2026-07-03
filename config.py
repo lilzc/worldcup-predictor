@@ -1,5 +1,16 @@
 import os
-ODDS_API_KEY = os.environ.get("ODDS_API_KEY", "")  # export ODDS_API_KEY=你的key，不硬编码进版本库
+
+# 自动加载 .env（本地密钥，不进版本库）
+_env_path = os.path.join(os.path.dirname(__file__), ".env")
+if os.path.exists(_env_path):
+    with open(_env_path) as _f:
+        for _line in _f:
+            _line = _line.strip()
+            if _line and not _line.startswith("#") and "=" in _line:
+                _k, _v = _line.split("=", 1)
+                os.environ.setdefault(_k.strip(), _v.strip())
+
+ODDS_API_KEY = os.environ.get("ODDS_API_KEY", "")  # 存 .env，不硬编码
 KELLY_FRACTION = 0.25
 MIN_EDGE = 0.03       # 最低3%边际才标记为value bet
 OVER25_BACKTEST_ACC = 0.593  # 54场回测: 59.3% — 押大球时强制显示此校准警告

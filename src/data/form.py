@@ -7,7 +7,7 @@ import requests
 
 CSV_URL = "https://raw.githubusercontent.com/martj42/international_results/master/results.csv"
 CACHE_PATH = "data/cache/international_results.csv"
-CACHE_TTL = 86400 * 3  # 3天重抓一次
+CACHE_TTL = 43200  # 12h — martj42 每日更新，3天 TTL 导致赛果滞后
 
 from config import BASE_GOALS as INTL_GOALS_AVG
 

@@ -15,7 +15,8 @@ RESULTS_PATH  = "data/wc2026_results.json"
 # Reuse form.py's CSV cache
 CSV_CACHE_PATH = "data/cache/international_results.csv"
 CSV_URL = "https://raw.githubusercontent.com/martj42/international_results/master/results.csv"
-CSV_TTL = 86400 * 3  # 3 days (same as form.py)
+CSV_COMMITS_API = "https://api.github.com/repos/martj42/international_results/commits?path=results.csv&per_page=1"
+CSV_TTL_FALLBACK = 43200  # 12h fallback if GitHub API unavailable
 
 # martj42 → local name map (kept in sync with form.py NAME_MAP)
 NAME_MAP = {
@@ -42,13 +43,42 @@ def _normalize(name: str) -> str:
     return NAME_MAP.get(name, name)
 
 
+def _martj42_last_commit_ts() -> float | None:
+    """Return UNIX timestamp of latest results.csv commit, or None on failure."""
+    try:
+        import urllib.request, json as _json
+        req = urllib.request.Request(
+            CSV_COMMITS_API,
+            headers={"User-Agent": "wc2026-model", "Accept": "application/vnd.github+json"},
+        )
+        with urllib.request.urlopen(req, timeout=8) as r:
+            commits = _json.loads(r.read())
+        if commits:
+            dt_str = commits[0]["commit"]["committer"]["date"]  # e.g. "2026-07-03T05:06:30Z"
+            dt = datetime.strptime(dt_str, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+            return dt.timestamp()
+    except Exception:
+        pass
+    return None
+
+
 def _fetch_csv() -> str:
     os.makedirs("data/cache", exist_ok=True)
-    if os.path.exists(CSV_CACHE_PATH):
-        age = datetime.now().timestamp() - os.path.getmtime(CSV_CACHE_PATH)
-        if age < CSV_TTL:
+    cache_exists = os.path.exists(CSV_CACHE_PATH)
+    if cache_exists:
+        cache_mtime = os.path.getmtime(CSV_CACHE_PATH)
+        # Prefer commit-timestamp comparison; fall back to 12h TTL
+        last_commit = _martj42_last_commit_ts()
+        if last_commit is not None:
+            stale = last_commit > cache_mtime
+            method = "commit-ts"
+        else:
+            stale = (datetime.now().timestamp() - cache_mtime) > CSV_TTL_FALLBACK
+            method = "12h-fallback"
+        if not stale:
             with open(CSV_CACHE_PATH, encoding="utf-8") as f:
                 return f.read()
+        print(f"[results_sync] 缓存过期({method})，重新拉取 martj42 CSV")
     import requests
     resp = requests.get(CSV_URL, timeout=30)
     resp.raise_for_status()
