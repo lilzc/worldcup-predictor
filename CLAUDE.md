@@ -48,8 +48,8 @@ commit message 格式：
 - `ARTIFACT_GAP`：当前 0.08（2026-06-22 从0.12降至0.08，复盘Uruguay AH -1.25/-1.5/-1.75 HIGH全输），改动需对比历史AH推荐命中率
 - `GSV_LAMBDA_FACTOR`：当前 0.80（2026-06-22 新增，Elo>1850强队在Elo差150-300挫败带λ×0.80，只影响AH/O/U矩阵，1X2 Brier不变），改动需回测O2.5准确率 + AH -1.5方向准确率对比
 - `GSV_LAMBDA_ELO_MIN/DIFF_MIN/DIFF_MAX`：当前 1850/150/300，与 GSV_LAMBDA_FACTOR 联动，单独调整需同时回测
-- `NEAR_EQUAL_AH_DIFF`：当前 100（2026-06-24新增，Elo差≤100时禁止AH Edge推单）。回测根据：28场walk-forward中diff≤100共6条AH注，5LOSS/6bets=83%亏损。改动需对比Edge ROI（v4基准：23注 ROI +46.1%）。
-- `NEAR_EQUAL_1X2_WIN_DIFF`：当前 100（2026-06-24新增，Elo差≤100时禁止1X2 Win方向Edge推单）。回测根据：28场walk-forward中diff≤100共3条1X2Win注，3LOSS/3bets=100%亏损（Croatia Win/Turkey Win/Sweden Win全错）。改动需对比Edge ROI（v4基准：23注 ROI +46.1%，P&L +10.60）。
+- `NEAR_EQUAL_AH_DIFF`：当前 100（2026-06-24新增，Elo差≤100时禁止AH Edge推单）。回测根据：28场walk-forward中diff≤100共6条AH注，5LOSS/6bets=83%亏损。改动需对比Edge ROI（PS-C 28场WF: 23注 ROI +46.1%）。
+- `NEAR_EQUAL_1X2_WIN_DIFF`：当前 100（2026-06-24新增，Elo差≤100时禁止1X2 Win方向Edge推单）。回测根据：28场walk-forward中diff≤100共3条1X2Win注，3LOSS/3bets=100%亏损（Croatia Win/Turkey Win/Sweden Win全错）。改动需对比Edge ROI（PS-C 28场WF: 23注 ROI +46.1%，P&L +10.60）。
 - `HT_LAMBDA_FACTOR`：当前 0.46（2026-06-24新增，WC 2026实测46%进球在上半场），改动需验证England HT胜率落区40-48%且Portugal HT胜率落区55-65%
 - `HT_DRAW_KILL_ELO_DIFF`：当前 200（2026-06-24新增，Elo差≥200时禁止推HT平局）。回测根据：24场回测Spain/Saudi(diff≈250)、France/Iraq(diff≈372) HT平局全输；Ecuador/Curacao(diff≈163)HT平局WIN，200是两者中间分割点。改动需对比HT推单 ROI（基准：15注 6W/9L ROI +82.1%）
 - `AD_ENABLED/AD_SHRINKAGE_K/AD_BLEND_WEIGHT/AD_MIN_MATCHES/AD_CAP_LO/AD_CAP_HI`：2026-07-01新增，当前 True/8/1.0/3/0.60/1.60。**小组赛全程无效（MIN_MATCHES=3，每队最多n=2赛前记录）**；淘汰赛起生效（n=3+）。改动需对比淘汰赛场次λ偏离量和实际ROI；backtest那组Brier改善含前视不算有效证据。AD_MIN_MATCHES降到2代价>收益（K=8收缩压死）。
@@ -108,14 +108,14 @@ commit message 格式：
 - today.py: 17注 12W 5L ROI +87.4%
 - 混合策略: 16注 12W 4L ROI +99.1%（规则②杀掉 Brazil/Haiti +330差无GSV，实际3-0正确KILL）
 
-**v1 vs v2 walk-forward 参数对比验证（2026-06-24，28场 walk-forward Elo 无泄漏）：**
-- v1（pre-06-22：ELO=550,RHO=-0.13,无GSV）: Brier 0.4969, O2.5 50.0%, Edge -3.4%(46注), OU -7.9%
-- v2（当前：ELO=400,RHO=-0.20,GSV=0.80）: Brier 0.4408, O2.5 62.1%, Edge +12.3%(32注), OU +5.2%
-- 结论：v2 全面优于 v1，06-22 参数批量迭代有效。Brier 改善 0.056，O2.5 准确率 +12.1pp。
+**PS-A vs PS-B walk-forward 参数对比验证（2026-06-24，28场 walk-forward Elo 无泄漏）：**
+- PS-A（pre-06-22：ELO=550,RHO=-0.13,无GSV）: Brier 0.4969, O2.5 50.0%, Edge -3.4%(46注), OU -7.9%
+- PS-B（06-22改：ELO=400,RHO=-0.20,GSV=0.80）: Brier 0.4408, O2.5 62.1%, Edge +12.3%(32注), OU +5.2%
+- 结论：PS-B 全面优于 PS-A，06-22 参数批量迭代有效。Brier 改善 0.056，O2.5 准确率 +12.1pp。
 
-**v3 walk-forward 黑单优化验证（2026-06-24，28场 walk-forward）：**
+**PS-C walk-forward 黑单优化验证（2026-06-24，28场 walk-forward）：**
 - 新增：NEAR_EQUAL_AH_DIFF=100（近平场次AH压制）+ Rule④同向1X2-AH去重
-- v2 → v3: Edge ROI +12.3%(32注) → +29.2%(26注)，削减6注（5LOSS/1WIN）
+- PS-B → PS-C: Edge ROI +12.3%(32注) → +29.2%(26注)，削减6注（5LOSS/1WIN）
 - 稳单/OU参考不受影响（分别+4.0%/+5.2%不变）
 - 唯一代价：Ghana/Panama AH -0.5 WIN +1.35被压制（保守trade-off）
 
@@ -151,7 +151,24 @@ commit message 格式：
   2. 攻防分解在淘汰赛起生效（每队已有≥3场小组赛记录）。λ偏差量级：如Norway/France Over2.5 55.6%→78.4%，England/Colombia 52.5%→37.4%，信号方向合理但无真实淘汰赛结果可验证准确率。
   3. backtest 显示 Brier 0.4854→0.4296（含前视：用了全72场最终AD state）——这个数字含前视污染，**不作为AD因子有效性的证据**。干净证据以无前视walkforward/实际淘汰赛结果为准，当前状态为"淘汰赛信号待验证"。
   - AD参数改动需同时验证：AD_BLEND_WEIGHT改动对比淘汰赛ROI；AD_SHRINKAGE_K改动对比λ偏离量；AD_MIN_MATCHES降低需说明噪声代价（n=2+K=8收缩后因子偏离量≤20%，代价高于信号）。
-- **Turkey-USA 案例（第60场，2026-06-25 正式日期）：** GSV 触发（USA Elo 1869 **主场** home_adv=1.05，diff=158）。**✓ 主客修正（2026-07-03）**：原 MATCHES_ODDS 误写 Turkey 为主队（diff全负、赔率对调），修正后 USA=主场。walkforward 现在正确评估本场：推 OU 小3.0 @1.72，实际5球(2+3) → LOSE。1x2: USA胜40.8% vs 市场48.3%；平局32.5% vs 25.1%（两数字均以USA为主场基准，与双矩阵生产路径对齐）。Turkey DC edge=-7.5pp → 不触发DC追踪（负edge）；Turkey AH+0.5 WIN（Turkey作客赢/cover +0.5）。平局gap14.4%>8%被LOW拦截，零代价。**回归验证记录**：双路径一致性（today.py edge == walkforward production edge）是每场案例的标准验收项目。DC出口猜想解封条件：2026-07-03后新增GSV触发场次≥8且样本外DC假想ROI为正。
+- **Turkey-USA 案例（第60场，2026-06-25 正式日期）：** GSV 触发（USA Elo 1869 **主场** home_adv=1.05，diff=158）。**✓ 主客修正（2026-07-03）**：原 MATCHES_ODDS 误写 Turkey 为主队（diff全负、赔率对调），修正后 USA=主场。walkforward 现在正确评估本场：推 OU 小3.0 @1.72，实际5球(2+3) → LOSE。1x2: USA胜40.8% vs 市场48.3%；平局32.5% vs 25.1%（两数字均以USA为主场基准，与双矩阵生产路径对齐）。Turkey DC edge=-7.5pp → 不触发DC追踪（负edge）；Turkey AH+0.5 WIN（Turkey作客赢/cover +0.5）。平局gap14.4%>8%被LOW拦截，零代价。**回归验证记录**：双路径一致性（today.py edge == walkforward production edge）是每场案例的标准验收项目。DC出口猜想解封条件：2026-07-03后新增GSV触发场次≥8且样本外DC假想ROI为正。**Wikipedia核验（2026-07-03）**：维基百科 Group D 页面将本场列为"Turkey vs United States"（Turkey首位），与martj42（USA首位）不一致。冲突本质：维基用**抽签位置公约**（Turkey被抽到home槽），martj42用**物理主场公约**（SoFi Stadium在美国本土=USA主场，neutral=FALSE）。对本模型`WC_HOST_NATIONS=1.05`的设计意图，martj42公约语义正确（USA确实有主场球迷优势）；跟维基换成Turkey主场会剥夺USA的物理优势加成。**决定：DB保持USA=home，不按维基改。** 85场全库比对结果：零其他主客不一致（只有此场存在公约分歧）。
+
+## 命名规则（2026-07-03 固化，防混淆）
+
+**参数集 = 模型配置版本（字母系，PS-X）；基准 = 库况检查点（v系，vN）；两轴独立。**
+基准快照必须注明所用参数集。不允许用同一字母同时指代"参数集变更"和"库况检查点"。
+
+| 代号 | 含义 | 示例 |
+|------|------|------|
+| PS-A | pre-06-22 参数集（ELO=550,RHO=-0.13,无GSV） | PS-A walkforward |
+| PS-B | 06-22批量改参（ELO=400,RHO=-0.20,GSV=0.80） | PS-B Brier 0.4408 |
+| PS-C | 06-24黑单优化（+NEAR_EQUAL_AH/1X2_WIN_DIFF=100） | PS-C 26注 ROI+29.2% |
+| PS-D | 当前全套（AD+OU_FENCE+HT+所有2026-07改动） | PS-D 跑出 v3基准 |
+| v1基准 | 第一个官方快照（pre-06-22，28场，仅存档） | — |
+| v2基准 | 第二个官方快照（pre-补库，72场，仅存档） | — |
+| v3基准 | 当前官方基准（85场，主客修正后，PS-D下跑） | +35.8% 32注 |
+
+---
 
 ## 运营态基准快照（2026-07-03，N=85场，补库后正式基准）
 
@@ -161,7 +178,7 @@ commit message 格式：
 |------|------|------|
 | Brier Score | **0.4122** | backtest 85场，含前视 AD state（不作为AD有效性证据） |
 | 1X2 准确率 | **71.8%** (61/85) | backtest |
-| WF Edge ROI | **+35.8%** (32注) | walkforward 无前视，v4 参数集，含Ecuador爆冷异常值。**v3基准（主客修正后）** |
+| WF Edge ROI | **+35.8%** (32注) | walkforward 无前视，**PS-D 参数集**，含Ecuador爆冷异常值。**v3基准（主客修正后）** |
 | WF Edge ROI（去Ecuador） | **+13.4%** (31注) | 去掉单注+730%异常值后的保守基准 |
 | WF ROI vs 旧基准 | +35.8% vs +24.5% = **+11.3pp** | v3修正后差额归因：①主客key修正使Turkey/USA回入回测（OU小3.0 LOSE，+1注，-100 P&L）；②11注共享场次Elo重校准（06-23补录4场，贡献≈+9.5pp）。**pre-homeaway-fix基准为+40.1%(31注)（已作废）**，v3才是干净主客数字。32注量级小样本，不作为改善证据。 |
 | Replay 轨迹 | **✓一致** | checksum=300783.5，85场 Elo 序列 |
