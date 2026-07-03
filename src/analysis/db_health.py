@@ -210,6 +210,16 @@ def check_state_freshness() -> dict:
     return {"name": name, "ok": True, "detail": "elo_state 和 AD_state 均晚于 results.json"}
 
 
+def assert_elo_fresh() -> None:
+    """预测入口守卫：Elo/AD状态过期于赛果库时响亮拒跑。"""
+    r = check_state_freshness()
+    if not r["ok"]:
+        print(f"\n  ✗ Elo 状态过期于赛果库: {r['detail']}")
+        print(f"  先执行: python3 update_elo.py --replay")
+        print(f"  不允许带过期 Elo 出预测。")
+        sys.exit(1)
+
+
 # ── Check 7: odds_history 覆盖率 ──────────────────────────────────────────────
 
 def check_odds_history_coverage(matches: list[dict]) -> dict:

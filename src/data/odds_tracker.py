@@ -17,6 +17,9 @@ def save_snapshot(matches: list[dict]) -> None:
             {
                 "home": m["home"],
                 "away": m["away"],
+                "odds_home":    m.get("odds_home"),
+                "odds_draw":    m.get("odds_draw"),
+                "odds_away":    m.get("odds_away"),
                 "ah_line":      m.get("ah_line"),
                 "odds_ah_home": m.get("odds_ah_home"),
                 "odds_ah_away": m.get("odds_ah_away"),

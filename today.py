@@ -860,6 +860,10 @@ def main():
         if stale:
             print(f"\n⚠  {len(stale)} 场比赛日期已过期，请更新 MANUAL_MATCHES\n")
 
+    # ── Elo 新鲜度守卫（预测前必查，过期则拒跑）──────────────────────────
+    from src.analysis.db_health import assert_elo_fresh
+    assert_elo_fresh()
+
     results = run_matches(matches, args.bankroll)
 
     if not args.no_best:

@@ -400,6 +400,10 @@ def run_auto_today() -> None:
       fetch_today_matches() → B1 反解 → gather_match_news() → PDF 输出
     A 系统不参与（依赖 MANUAL_MATCHES，auto-today 不用手填）。
     """
+    # ── Elo 新鲜度守卫（必须在任何预测前）──────────────────────────────────
+    from src.analysis.db_health import assert_elo_fresh
+    assert_elo_fresh()
+
     from src.data.odds_source import fetch_today_matches
     from src.data.auto_news import gather_match_news
 
@@ -425,6 +429,18 @@ def run_auto_today() -> None:
         print(f"\n  今日 ({result.today_utc}) 无赛程（{result.error}）")
         print(f"{sep}")
         return
+
+    # ── 持久化赔率快照（GSV追踪器/历史查询用）────────────────────────────
+    try:
+        from src.data.odds_tracker import save_snapshot as _save_snap
+        _snap_dicts = [
+            {"home": mt.home, "away": mt.away,
+             "odds_home": mt.odds_home, "odds_draw": mt.odds_draw, "odds_away": mt.odds_away}
+            for mt in result.matches
+        ]
+        _save_snap(_snap_dicts)
+    except Exception as _snap_err:
+        sys.stderr.write(f"  ⚠ 赔率快照写入失败（非致命）: {_snap_err}\n")
 
     # ── 顶部信息栏 ───────────────────────────────────────────────────────
     bms_used = list(dict.fromkeys(m.bookmaker for m in result.matches))  # 保序去重
