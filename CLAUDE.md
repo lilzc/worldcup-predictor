@@ -163,6 +163,7 @@ commit message 格式：
 | 1X2 准确率 | **71.8%** (61/85) | backtest |
 | WF Edge ROI | **+40.1%** (31注) | walkforward 无前视，v4 参数集，含Ecuador爆冷异常值 |
 | WF Edge ROI（去Ecuador） | **+17.1%** (30注) | 去掉单注+730%异常值后的保守基准 |
+| WF ROI vs 旧基准 | +40.1% vs +24.5% = **+15.6pp** | 差额归因：①去除2注旧DB主客场互换误计（Turkey/USA Turkey主场→平局LOSE，England/Panama England主场→AH-2.5 LOSE，两注共-200 P&L，贡献≈+6.1pp）；②11注共享场次Elo重校准（06-23补录4场更新Portugal/Uzbekistan/Colombia/Congo DR/England/Ghana/Panama/Croatia Elo，bet方向/line随之调整，贡献≈+9.5pp）。**30注量级此差异为小样本敏感，不作为模型改善证据；基准意义是"干净库上的清账"，不是"变强的证"。** |
 | Replay 轨迹 | **✓一致** | checksum=300783.5，85场 Elo 序列 |
 | GSV DC 无水ROI | **+25.5%** (N=28, 12注有赔率) | 假想追踪器，生产路径重填；无水近似价，真实盘口含vig≈2-4%需下调。**入单口径=触发即下**，不事后切换edge过滤 |
 | GSV AH+0.5 ROI | **+119.8%** (5注，真实赔率结算) | **已审计：不可持续**（样本期冷门密集子集）。解封须2026-07-03后新增≥8场样本外GSV触发场次且DC ROI为正 |
