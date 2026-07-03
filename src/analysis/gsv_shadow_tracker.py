@@ -36,6 +36,17 @@ _VIG_NOTE = (
 )
 UNLOCK_N = 10  # 解封条件：≥10 触发场次且假想ROI显著为正
 
+# Cohort 边界
+_GREY_START = "2026-06-29"   # 灰带起点（淘汰赛首场，猜想成形期）
+_OOS_START  = "2026-07-03"   # 正式 OOS 起点（猜想记档日）
+
+def _date_to_cohort(date: str) -> str:
+    if date >= _OOS_START:
+        return "oos"
+    if date >= _GREY_START:
+        return "grey"
+    return "backfill"
+
 # ── 内部工具 ─────────────────────────────────────────────────────────────────
 
 def _dc_outcome(hg: int, ag: int, weak_is_home: bool) -> str:
@@ -138,6 +149,7 @@ def _build_shadow_record(
     return {
         "match": f"{home} vs {away}",
         "home": home, "away": away, "date": date,
+        "cohort": _date_to_cohort(date),
         "gsv_zone": gsv_zone,
         "strong": strong, "weak": weak,
         "elo_diff": round(diff, 1),
@@ -316,8 +328,50 @@ def backfill_history(force: bool = False) -> None:
 
 # ── 统计报告 ──────────────────────────────────────────────────────────────────
 
+def _segment_stats(recs: list[dict]) -> dict:
+    """计算一组记录的 DC / AH 统计。"""
+    dc = [r for r in recs if r.get("market_odds_available") and
+          r["shadow_bets"]["weak_dc"]["result"] is not None]
+    ah = [r for r in recs if r["shadow_bets"]["weak_ah_plus05"]["odds_available"]]
+    dc_pnl = sum(r["shadow_bets"]["weak_dc"]["hypo_pv"] or 0 for r in dc)
+    ah_pnl = sum(r["shadow_bets"]["weak_ah_plus05"]["hypo_pv"] or 0 for r in ah)
+    return {
+        "n": len(recs),
+        "dc": dc, "dc_w": sum(1 for r in dc if r["shadow_bets"]["weak_dc"]["result"]=="win"),
+        "dc_l": sum(1 for r in dc if r["shadow_bets"]["weak_dc"]["result"]=="lose"),
+        "dc_pnl": dc_pnl, "dc_roi": dc_pnl/len(dc)*100 if dc else 0.0,
+        "ah": ah, "ah_w": sum(1 for r in ah if r["shadow_bets"]["weak_ah_plus05"]["result"]=="win"),
+        "ah_l": sum(1 for r in ah if r["shadow_bets"]["weak_ah_plus05"]["result"]=="lose"),
+        "ah_pnl": ah_pnl, "ah_roi": ah_pnl/len(ah)*100 if ah else 0.0,
+    }
+
+
+def _print_segment(label: str, note: str, recs: list[dict]) -> None:
+    s = _segment_stats(recs)
+    std = sum(1 for r in recs if r.get("gsv_zone")=="standard")
+    ext = sum(1 for r in recs if r.get("gsv_zone")=="extended")
+    print(f"\n  ── {label}  {note} ──")
+    print(f"     触发 {s['n']} 场（标准区 {std} | 扩展区 {ext}）")
+    if s["dc"]:
+        print(f"     DC  {s['dc_w']}W/{s['dc_l']}L  P&L={s['dc_pnl']:+.2f}  ROI={s['dc_roi']:+.1f}%")
+    else:
+        print(f"     DC  无可结算数据（无市场赔率）")
+    if s["ah"]:
+        print(f"     AH+0.5  {s['ah_w']}W/{s['ah_l']}L  P&L={s['ah_pnl']:+.2f}  ROI={s['ah_roi']:+.1f}%")
+    # 逐场明细
+    print(f"     {'场次':<30} {'区段':<6} {'弱方':<12} {'DC结果':<7} {'DC边际':>8} {'AH+0.5':>7}")
+    print(f"     {'─'*72}")
+    for r in recs:
+        dc_b = r["shadow_bets"]["weak_dc"]
+        ah_b = r["shadow_bets"]["weak_ah_plus05"]
+        dc_e = f"{dc_b['edge']*100:+.1f}pp" if dc_b.get("edge") is not None else "N/A"
+        dc_r = dc_b.get("result") or "N/A"
+        ah_r = ah_b.get("result") or "N/A"
+        print(f"     {r['match']:<30} [{r['gsv_zone'][:3].upper()}]  {r['weak']:<12} {dc_r:<7} {dc_e:>8} {ah_r:>7}")
+
+
 def report() -> None:
-    """输出当前累计统计，底部打印解封条件。"""
+    """三段式输出：回填 / 灰带 / 正式OOS。唯一裁决依据=正式OOS段。"""
     if not DATA_FILE.exists():
         print("[GSV追踪器] 日志文件不存在，请先运行 --backfill")
         return
@@ -336,69 +390,52 @@ def report() -> None:
         print("[GSV追踪器] 日志为空")
         return
 
-    n_total = len(records)
-    n_with_odds = sum(1 for r in records if r.get("market_odds_available"))
+    # 按 cohort 分段（兼容旧记录：无 cohort 字段按日期推断）
+    def _cohort(r):
+        if "cohort" in r:
+            return r["cohort"]
+        return _date_to_cohort(r.get("date",""))
 
-    # DC 统计
-    dc_recs = [r for r in records if r.get("market_odds_available") and
-               r["shadow_bets"]["weak_dc"]["result"] is not None]
-    dc_wins  = sum(1 for r in dc_recs if r["shadow_bets"]["weak_dc"]["result"] == "win")
-    dc_loses = sum(1 for r in dc_recs if r["shadow_bets"]["weak_dc"]["result"] == "lose")
-    dc_pnl   = sum(r["shadow_bets"]["weak_dc"]["hypo_pv"] or 0 for r in dc_recs)
-    dc_roi   = dc_pnl / len(dc_recs) * 100 if dc_recs else 0.0
+    bf   = [r for r in records if _cohort(r) == "backfill"]
+    grey = [r for r in records if _cohort(r) == "grey"]
+    oos  = [r for r in records if _cohort(r) == "oos"]
 
-    # AH+0.5 统计
-    ah_recs  = [r for r in records if r["shadow_bets"]["weak_ah_plus05"]["odds_available"]]
-    ah_wins  = sum(1 for r in ah_recs if r["shadow_bets"]["weak_ah_plus05"]["result"] == "win")
-    ah_loses = sum(1 for r in ah_recs if r["shadow_bets"]["weak_ah_plus05"]["result"] == "lose")
-    ah_pnl   = sum(r["shadow_bets"]["weak_ah_plus05"]["hypo_pv"] or 0 for r in ah_recs)
-    ah_roi   = ah_pnl / len(ah_recs) * 100 if ah_recs else 0.0
+    print("=" * 72)
+    print("  GSV 假想盘口追踪器 — 三段式报告")
+    print("=" * 72)
 
-    # 标准区 / 扩展区拆分
-    std_recs = [r for r in records if r.get("gsv_zone") == "standard"]
-    ext_recs = [r for r in records if r.get("gsv_zone") == "extended"]
+    _print_segment(
+        "回填段（小组赛，≤6-28）",
+        "同一训练池，仅参考",
+        bf,
+    )
+    _print_segment(
+        "灰带段（淘汰赛 6-29~7-02）",
+        "猜想成形期，观察不裁决",
+        grey,
+    )
 
-    print("=" * 65)
-    print("  GSV 假想盘口追踪器 — 当前统计")
-    print("=" * 65)
-    print(f"  触发场次总计:  {n_total} 场  (标准区 {len(std_recs)} 场 | 扩展区 {len(ext_recs)} 场)")
-    print(f"  有1X2赔率数据: {n_with_odds} 场 (无赔率 {n_total - n_with_odds} 场)")
-    print()
-    print(f"  ── 弱方DC 假想结算 ({len(dc_recs)} 注，无水近似价) ──")
-    if dc_recs:
-        print(f"     {dc_wins}W / {dc_loses}L  无水假想P&L={dc_pnl:+.2f}  无水ROI={dc_roi:+.1f}%")
-    else:
-        print(f"     无可统计数据")
-    print()
-    print(f"  ── 弱方AH+0.5 假想结算 ({len(ah_recs)} 注，真实市场赔率) ──")
-    if ah_recs:
-        print(f"     {ah_wins}W / {ah_loses}L  真实赔率P&L={ah_pnl:+.2f}  ROI={ah_roi:+.1f}%")
-    else:
-        print(f"     无可统计数据（缺少±0.5 AH盘口）")
-    print()
-    print(f"  ── 逐场明细 ──")
-    print(f"  {'场次':<30} {'区段':<8} {'弱方':<12} {'DC结果':<8} {'DC边际':>8} {'AH+0.5':>8}")
-    print(f"  {'─'*65}")
-    for r in records:
-        dc_b  = r["shadow_bets"]["weak_dc"]
-        ah_b  = r["shadow_bets"]["weak_ah_plus05"]
-        dc_e  = f"{dc_b['edge']*100:+.1f}pp" if dc_b.get("edge") is not None else "N/A"
-        dc_r  = dc_b.get("result") or "N/A"
-        ah_r  = ah_b.get("result") or "N/A"
-        print(f"  {r['match']:<30} [{r['gsv_zone'][:3].upper()}]  {r['weak']:<12} {dc_r:<8} {dc_e:>8} {ah_r:>8}")
+    oos_s = _segment_stats(oos)
+    _print_segment(
+        f"正式OOS（7-03起，N={len(oos)}/{UNLOCK_N}）",
+        "唯一裁决依据",
+        oos,
+    )
+
     print()
     print(f"  ⚠ {_VIG_NOTE}")
     print()
-    print("─" * 65)
-    cond_met = n_total >= UNLOCK_N and (dc_recs and dc_roi > 5)
-    print(f"  解封条件: 触发场次 ≥{UNLOCK_N} 且假想方向无水ROI显著为正")
-    if cond_met:
-        print(f"  ✓ 当前 N={n_total} ≥{UNLOCK_N}，DC无水ROI={dc_roi:+.1f}% — 满足条件，可提交spec")
+    print("─" * 72)
+    print(f"  解封条件（仅看正式OOS段）：N≥{UNLOCK_N} 且 DC无水ROI显著为正")
+    print(f"  样本外起点=7-03（猜想记档日），严格晚于猜想成形；6-29~7-02为灰带cohort，观察不裁决。")
+    n_oos = len(oos)
+    if n_oos >= UNLOCK_N and oos_s["dc"] and oos_s["dc_roi"] > 5:
+        print(f"  ✓ 正式OOS N={n_oos}≥{UNLOCK_N}，DC ROI={oos_s['dc_roi']:+.1f}% — 满足解封，可提交spec")
     else:
-        print(f"  当前 N={n_total}（{'≥' if n_total >= UNLOCK_N else '<'}{UNLOCK_N}），"
-              f"DC无水ROI={dc_roi:+.1f}%")
-        print(f"  未达解封条件，不构成任何改动依据。")
-    print("─" * 65)
+        progress = f"{n_oos}/{UNLOCK_N}"
+        roi_str = f"{oos_s['dc_roi']:+.1f}%" if oos_s["dc"] else "暂无数据"
+        print(f"  正式OOS进度: N={progress}，DC ROI={roi_str} — 未达解封条件")
+    print("─" * 72)
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
