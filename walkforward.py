@@ -228,11 +228,11 @@ MATCHES_ODDS = {
         "ah":  [(0.25,2.13,1.80),(0.0,1.64,2.38),(0.5,2.63,1.53),
                 (-0.25,1.40,3.08),(0.75,3.12,1.39)],
     },
-    ("Turkey", "USA", "2026-06-26"): {
-        "1x2": (3.55, 3.75, 1.95),
+    ("USA", "Turkey", "2026-06-25"): {  # 主客修正: USA主场(WC主办国,home_adv=1.05)
+        "1x2": (1.95, 3.75, 3.55),       # 原(Turkey胜,平,USA胜) → 现(USA胜,平,Turkey胜)
         "ou":  [(2.75,1.88,2.00),(3.0,2.19,1.72),(2.5,1.69,2.23),(3.25,2.42,1.58)],
-        "ah":  [(-0.5,1.94,1.96),(-0.75,1.73,2.20),(-0.25,2.25,1.70),
-                (-1.0,1.52,2.61),(0.0,2.72,1.48),(-1.25,1.40,3.00)],
+        "ah":  [(0.5,1.96,1.94),(0.75,2.20,1.73),(0.25,1.70,2.25),   # 负线翻正,赔率对调
+                (1.0,2.61,1.52),(0.0,1.48,2.72),(1.25,3.00,1.40)],
     },
 
     # ── 06-27 赔率文件 = 06-27 results ────────────────────────────────────
@@ -273,10 +273,10 @@ MATCHES_ODDS = {
                 (-1.75,2.40,1.61),(-2.75,1.57,2.49),(-1.5,2.63,1.51)],
     },
     # ── 06-28 赔率文件 = 06-28 results ────────────────────────────────────
-    ("England", "Panama", "2026-06-28"): {
-        "1x2": (1.17, 7.50, 15.00),
+    ("Panama", "England", "2026-06-27"): {  # 主客修正: Panama主场(中性场地,home_adv=1.0)
+        "1x2": (15.00, 7.50, 1.17),          # 原(England胜,平,Panama胜) → 现(Panama胜,平,England胜)
         "ou":  [(3.5,2.20,1.68)],
-        "ah":  [(2.5,2.35,1.57)],
+        "ah":  [(-2.5,1.57,2.35)],           # 正2.5翻负(-2.5=England让球),赔率对调; line<0→skip
     },
     ("Croatia", "Ghana", "2026-06-28"): {
         "1x2": (1.71, 3.75, 5.50),
@@ -519,6 +519,17 @@ def run_walkforward(verbose: bool = True, use_ad: bool = None):
 
     # 赔率查询表：(home, away) → odds_entry
     odds_lookup = {(h, a): v for (h, a, _d), v in MATCHES_ODDS.items()}
+    # 预检：检测DB主客顺序与MATCHES_ODDS键不一致的场次（静默跳过=危险）
+    _reversed_keys = {(a, h) for (h, a) in odds_lookup}
+    with open("data/wc2026_results.json") as _f:
+        _db_matches = json.load(_f)["matches"]
+    for _m in _db_matches:
+        _pair = (_m["home"], _m["away"])
+        if _pair not in odds_lookup and _pair[::-1] in odds_lookup:
+            raise RuntimeError(
+                f"[ODDS KEY MISMATCH] DB: {_pair[0]} vs {_pair[1]}, "
+                f"但 MATCHES_ODDS 只有 ({_pair[1]}, {_pair[0]}) — 主客对调，请修正 MATCHES_ODDS key"
+            )
 
     elo = dict(TEAM_ELO)  # 从静态起始值出发，无前视
     ad_state = {}         # 攻防状态，逐场建立

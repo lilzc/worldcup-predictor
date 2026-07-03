@@ -151,7 +151,7 @@ commit message 格式：
   2. 攻防分解在淘汰赛起生效（每队已有≥3场小组赛记录）。λ偏差量级：如Norway/France Over2.5 55.6%→78.4%，England/Colombia 52.5%→37.4%，信号方向合理但无真实淘汰赛结果可验证准确率。
   3. backtest 显示 Brier 0.4854→0.4296（含前视：用了全72场最终AD state）——这个数字含前视污染，**不作为AD因子有效性的证据**。干净证据以无前视walkforward/实际淘汰赛结果为准，当前状态为"淘汰赛信号待验证"。
   - AD参数改动需同时验证：AD_BLEND_WEIGHT改动对比淘汰赛ROI；AD_SHRINKAGE_K改动对比λ偏离量；AD_MIN_MATCHES降低需说明噪声代价（n=2+K=8收缩后因子偏离量≤20%，代价高于信号）。
-- **Turkey-USA 案例（第60场，2026-06-26 重放）：** GSV 触发（USA Elo 1869, diff=158）后 A 与市场大分歧（USA胜 40.8% vs 市场48.3%；平局 32.5% vs 25.1%，生产路径修复后），分歧方向被实际结果支持（Turkey 3-2）。但信号表达集中于"平局"单一出口（Poisson 压 λ 的数学结果），Turkey胜方向 edge 为负（-6.8pp）。平局注 gap=14.4%>8% 被 LOW 拦截是**零代价的正确拦截**——方向对≠标的对，gap 拦截本场无代价。真正兑现的承接标的（1X/Turkey胜）不在当前盘口清单或 edge 为负。**✓ 双路径对账修复完成（2026-07-03）**：walkforward.py已对齐predict.py双矩阵（WF_GSV_MODE="production"，默认）；生产路径DC edge=-4.8pp，today.py非共识标注正确不触发（-4.8pp<7%阈值）。"旧+7.5pp"是legacy路径数字，已废弃。**DC出口猜想并入"平局生成与表达问题（收敛病灶）"**，解封条件：2026-07-03后新增GSV触发场次≥8且样本外DC假想ROI为正。届时立 spec 走 fence zone 流程。AH+0.5方向已审计：+115.5% 为样本期冷门密集6注子集，不可持续，同标准解封。**回归验证记录**：双路径一致性（today.py edge == walkforward production edge）是每场案例的标准验收项目。
+- **Turkey-USA 案例（第60场，2026-06-25 正式日期）：** GSV 触发（USA Elo 1869 **主场** home_adv=1.05，diff=158）。**✓ 主客修正（2026-07-03）**：原 MATCHES_ODDS 误写 Turkey 为主队（diff全负、赔率对调），修正后 USA=主场。walkforward 现在正确评估本场：推 OU 小3.0 @1.72，实际5球(2+3) → LOSE。1x2: USA胜40.8% vs 市场48.3%；平局32.5% vs 25.1%（两数字均以USA为主场基准，与双矩阵生产路径对齐）。Turkey DC edge=-7.5pp → 不触发DC追踪（负edge）；Turkey AH+0.5 WIN（Turkey作客赢/cover +0.5）。平局gap14.4%>8%被LOW拦截，零代价。**回归验证记录**：双路径一致性（today.py edge == walkforward production edge）是每场案例的标准验收项目。DC出口猜想解封条件：2026-07-03后新增GSV触发场次≥8且样本外DC假想ROI为正。
 
 ## 运营态基准快照（2026-07-03，N=85场，补库后正式基准）
 
@@ -161,14 +161,16 @@ commit message 格式：
 |------|------|------|
 | Brier Score | **0.4122** | backtest 85场，含前视 AD state（不作为AD有效性证据） |
 | 1X2 准确率 | **71.8%** (61/85) | backtest |
-| WF Edge ROI | **+40.1%** (31注) | walkforward 无前视，v4 参数集，含Ecuador爆冷异常值 |
-| WF Edge ROI（去Ecuador） | **+17.1%** (30注) | 去掉单注+730%异常值后的保守基准 |
-| WF ROI vs 旧基准 | +40.1% vs +24.5% = **+15.6pp** | 差额归因：①去除2注旧DB主客场互换误计（Turkey/USA Turkey主场→平局LOSE，England/Panama England主场→AH-2.5 LOSE，两注共-200 P&L，贡献≈+6.1pp）；②11注共享场次Elo重校准（06-23补录4场更新Portugal/Uzbekistan/Colombia/Congo DR/England/Ghana/Panama/Croatia Elo，bet方向/line随之调整，贡献≈+9.5pp）。**30注量级此差异为小样本敏感，不作为模型改善证据；基准意义是"干净库上的清账"，不是"变强的证"。** |
+| WF Edge ROI | **+35.8%** (32注) | walkforward 无前视，v4 参数集，含Ecuador爆冷异常值。**v3基准（主客修正后）** |
+| WF Edge ROI（去Ecuador） | **+13.4%** (31注) | 去掉单注+730%异常值后的保守基准 |
+| WF ROI vs 旧基准 | +35.8% vs +24.5% = **+11.3pp** | v3修正后差额归因：①主客key修正使Turkey/USA回入回测（OU小3.0 LOSE，+1注，-100 P&L）；②11注共享场次Elo重校准（06-23补录4场，贡献≈+9.5pp）。**pre-homeaway-fix基准为+40.1%(31注)（已作废）**，v3才是干净主客数字。32注量级小样本，不作为改善证据。 |
 | Replay 轨迹 | **✓一致** | checksum=300783.5，85场 Elo 序列 |
-| GSV DC 无水ROI | **+25.5%** (N=28, 12注有赔率) | 假想追踪器，生产路径重填；无水近似价，真实盘口含vig≈2-4%需下调。**入单口径=触发即下**，不事后切换edge过滤 |
-| GSV AH+0.5 ROI | **+119.8%** (5注，真实赔率结算) | **已审计：不可持续**（样本期冷门密集子集）。解封须2026-07-03后新增≥8场样本外GSV触发场次且DC ROI为正 |
+| GSV DC 无水ROI | **+21.4%** (N=28, 14注有赔率) | 主客修正后：+2注(USA/Turkey+Panama/England key修复)，Turkey DC WIN(+0.935)/Panama DC LOSE(-1)，净降4.1pp。无水近似价，真实vig≈2-4%需下调。**入单口径=触发即下**，不事后切换edge过滤 |
+| GSV AH+0.5 ROI | **+115.5%** (6注，真实赔率结算) | **已审计：不可持续**（样本期冷门密集子集）。Turkey AH+0.5 WIN已正确计入(Turkey away +0.5覆盖)。解封须2026-07-03后新增≥8场样本外GSV触发场次且DC ROI为正 |
 | OOS 首批（2026-07-02） | **2注 2W 0L** | 预测基于缺口Elo；Spain胜WIN/Switzerland胜WIN；Portugal平局LOW不进推单 |
 
 **存档（pre-补库，06-23~06-29缺口32场，仅存档）**：Brier 0.4296 / 1X2 65.3%(47/72) / WF ROI +24.5%(33注) / checksum=86230.0(72场) / GSV DC +21.4%(N=24,14注赔率) / GSV AH+0.5 +115.5%(6注)
+
+**存档（pre-homeaway-fix，主客key修正前，仅存档）**：WF ROI +40.1%(31注) / WF去Ecuador +17.1%(30注) / GSV DC +25.5%(12注有赔率) / GSV AH+0.5 +119.8%(5注)。Turkey/USA和England/Panama主客对调导致两注缺失（Turkey/USA OU Under 3.0 LOSE未计；England/Panama无bet）。
 
 **数据管线状态**：`daily_sync.py` 四步管线 + staging 人工确认闸 + db_health 七项体检全绿。`update_elo.py` 单场直接写入路径已废弃（2026-07-03），仅保留 Elo 预览功能，所有入库统一走 `--commit-results`。DB去重（2026-07-03）：martj42 commit-timestamp TTL修复后发现28对日期偏移重复条目，已用martj42权威日期去重，113→85条。
