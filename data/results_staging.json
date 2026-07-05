@@ -1,0 +1,79 @@
+{
+  "_created": "2026-07-05T13:11:12Z",
+  "confirmed": [
+    {
+      "date": "2026-07-04",
+      "home": "Canada",
+      "away": "Morocco",
+      "hg": 0,
+      "ag": 3,
+      "stage": "Knockout",
+      "source_a": {
+        "name": "odds-api",
+        "hg": 0,
+        "ag": 3
+      },
+      "source_b": {
+        "name": "martj42",
+        "hg": 0,
+        "ag": 3
+      },
+      "verdict": "AGREE",
+      "note": "两源比分一致"
+    },
+    {
+      "date": "2026-07-04",
+      "home": "Paraguay",
+      "away": "France",
+      "hg": 0,
+      "ag": 1,
+      "stage": "Knockout",
+      "source_a": {
+        "name": "odds-api",
+        "hg": 0,
+        "ag": 1
+      },
+      "source_b": {
+        "name": "martj42",
+        "hg": 0,
+        "ag": 1
+      },
+      "verdict": "AGREE",
+      "note": "两源比分一致"
+    }
+  ],
+  "pending": [
+    {
+      "date": "2026-07-03",
+      "home": "Switzerland",
+      "away": "Algeria",
+      "hg": 2,
+      "ag": 0,
+      "stage": "Group",
+      "source_a": {
+        "name": "odds-api",
+        "hg": 2,
+        "ag": 0
+      },
+      "source_b": null,
+      "verdict": "DATE_DRIFT_DUP",
+      "note": "已在DB(date=2026-07-02),日期漂移归档"
+    },
+    {
+      "date": "2026-07-04",
+      "home": "Colombia",
+      "away": "Ghana",
+      "hg": 1,
+      "ag": 0,
+      "stage": "Group",
+      "source_a": {
+        "name": "odds-api",
+        "hg": 1,
+        "ag": 0
+      },
+      "source_b": null,
+      "verdict": "DATE_DRIFT_DUP",
+      "note": "已在DB(date=2026-07-03),日期漂移归档"
+    }
+  ]
+}

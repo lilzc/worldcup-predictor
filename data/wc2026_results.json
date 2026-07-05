@@ -680,6 +680,46 @@
       "hg": 2,
       "ag": 0,
       "stage": "Knockout"
+    },
+    {
+      "date": "2026-07-03",
+      "home": "Australia",
+      "away": "Egypt",
+      "hg": 1,
+      "ag": 1,
+      "stage": "Knockout"
+    },
+    {
+      "date": "2026-07-03",
+      "home": "Argentina",
+      "away": "Cape Verde",
+      "hg": 1,
+      "ag": 1,
+      "stage": "Knockout"
+    },
+    {
+      "date": "2026-07-03",
+      "home": "Colombia",
+      "away": "Ghana",
+      "hg": 1,
+      "ag": 0,
+      "stage": "Knockout"
+    },
+    {
+      "date": "2026-07-04",
+      "home": "Canada",
+      "away": "Morocco",
+      "hg": 0,
+      "ag": 3,
+      "stage": "Knockout"
+    },
+    {
+      "date": "2026-07-04",
+      "home": "Paraguay",
+      "away": "France",
+      "hg": 0,
+      "ag": 1,
+      "stage": "Knockout"
     }
   ]
 }
