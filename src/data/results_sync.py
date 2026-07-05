@@ -12,6 +12,14 @@ from datetime import datetime, timedelta, timezone
 WC_START_DATE = "2026-06-01"
 RESULTS_PATH  = "data/wc2026_results.json"
 
+# WC2026 淘汰赛首日。daily_sync 的口径警告（"请确认是否为90min比分"）依赖 stage
+# 字段，此前 5 处硬编码 "Group" 导致警告永远不触发（2026-07-05 修复）。
+KNOCKOUT_START = "2026-06-28"
+
+
+def _stage_for(date_str: str) -> str:
+    return "Knockout" if date_str >= KNOCKOUT_START else "Group"
+
 # Reuse form.py's CSV cache
 CSV_CACHE_PATH = "data/cache/international_results.csv"
 CSV_URL = "https://raw.githubusercontent.com/martj42/international_results/master/results.csv"
@@ -124,7 +132,7 @@ def fetch_wc2026_results() -> tuple[list[dict], str | None]:
             "away":  away,
             "hg":    hg,
             "ag":    ag,
-            "stage": "Group",
+            "stage": _stage_for(date_str),
         })
         if latest_date is None or date_str > latest_date:
             latest_date = date_str
@@ -399,7 +407,7 @@ def cross_validate(src_a: list[dict], src_b: list[dict]) -> tuple[list[dict], li
             # Only in src_a
             entry = {
                 "date": date, "home": home, "away": away,
-                "hg": m_a["hg"], "ag": m_a["ag"], "stage": "Group",
+                "hg": m_a["hg"], "ag": m_a["ag"], "stage": _stage_for(date),
                 "source_a": src_a_info, "source_b": None,
                 "verdict": "SINGLE_SOURCE",
                 "note": "仅 odds-api 有记录，martj42 尚未更新",
@@ -412,7 +420,7 @@ def cross_validate(src_a: list[dict], src_b: list[dict]) -> tuple[list[dict], li
             if m_a["hg"] == matched_b["hg"] and m_a["ag"] == matched_b["ag"]:
                 entry = {
                     "date": date, "home": home, "away": away,
-                    "hg": matched_b["hg"], "ag": matched_b["ag"], "stage": "Group",
+                    "hg": matched_b["hg"], "ag": matched_b["ag"], "stage": _stage_for(date),
                     "source_a": src_a_info, "source_b": src_b_info,
                     "verdict": "AGREE",
                     "note": "两源比分一致",
@@ -421,7 +429,7 @@ def cross_validate(src_a: list[dict], src_b: list[dict]) -> tuple[list[dict], li
             else:
                 entry = {
                     "date": date, "home": home, "away": away,
-                    "hg": matched_b["hg"], "ag": matched_b["ag"], "stage": "Group",
+                    "hg": matched_b["hg"], "ag": matched_b["ag"], "stage": _stage_for(date),
                     "source_a": src_a_info, "source_b": src_b_info,
                     "verdict": "CONFLICT",
                     "note": f"比分冲突: odds-api={m_a['hg']}-{m_a['ag']} vs martj42={matched_b['hg']}-{matched_b['ag']}",
@@ -447,7 +455,7 @@ def cross_validate(src_a: list[dict], src_b: list[dict]) -> tuple[list[dict], li
         home, away, date = m_b["home"], m_b["away"], m_b["date"]
         entry = {
             "date": date, "home": home, "away": away,
-            "hg": m_b["hg"], "ag": m_b["ag"], "stage": "Group",
+            "hg": m_b["hg"], "ag": m_b["ag"], "stage": _stage_for(date),
             "source_a": None,
             "source_b": {"name": "martj42", "hg": m_b["hg"], "ag": m_b["ag"]},
             "verdict": "SINGLE_SOURCE",
@@ -541,7 +549,7 @@ def commit_from_staging(auto_replay: bool = True) -> int:
         clean = {
             "date": r["date"], "home": r["home"], "away": r["away"],
             "hg": r["hg"], "ag": r["ag"],
-            "stage": r.get("stage", "Group"),
+            "stage": r.get("stage") or _stage_for(r["date"]),
         }
         new_entries.append(clean)
         seen.add(key)
@@ -619,12 +627,13 @@ def commit_from_staging(auto_replay: bool = True) -> int:
             else:
                 print(f"[results_sync] Elo 轨迹自检: ✓ ({len(current) - len(new_entries)} 场历史 checksum 一致)")
 
-    # Append pending to PENDING_PATH
+    # Append pending to PENDING_PATH — skip DATE_DRIFT_DUP (already in DB)
     pending = staging.get("pending", [])
-    if pending:
+    real_pending = [p for p in pending if p.get("verdict") != "DATE_DRIFT_DUP"]
+    if real_pending:
         with open(PENDING_PATH, "a", encoding="utf-8") as f:
-            for p in pending:
+            for p in real_pending:
                 f.write(json.dumps(p, ensure_ascii=False) + "\n")
-        print(f"[results_sync] {len(pending)} 条待裁决记录已追加 → {PENDING_PATH}")
+        print(f"[results_sync] {len(real_pending)} 条待裁决记录已追加 → {PENDING_PATH}")
 
     return len(new_entries)
