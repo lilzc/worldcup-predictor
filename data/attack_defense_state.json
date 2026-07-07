@@ -1,10 +1,10 @@
 {
   "Mexico": {
-    "att_goals_sum": 8.0,
-    "att_exp_sum": 7.304679091041457,
-    "def_goals_sum": 0.0,
-    "def_exp_sum": 3.873498872224835,
-    "n": 4
+    "att_goals_sum": 10.0,
+    "att_exp_sum": 8.401736745726263,
+    "def_goals_sum": 3.0,
+    "def_exp_sum": 5.461747213193393,
+    "n": 5
   },
   "South Africa": {
     "att_goals_sum": 2.0,
@@ -42,11 +42,11 @@
     "n": 4
   },
   "USA": {
-    "att_goals_sum": 10.0,
-    "att_exp_sum": 7.186866976547485,
-    "def_goals_sum": 4.0,
-    "def_exp_sum": 3.919578577607952,
-    "n": 4
+    "att_goals_sum": 11.0,
+    "att_exp_sum": 8.388139866939794,
+    "def_goals_sum": 8.0,
+    "def_exp_sum": 5.37004001225414,
+    "n": 5
   },
   "Paraguay": {
     "att_goals_sum": 3.0,
@@ -70,11 +70,11 @@
     "n": 4
   },
   "Brazil": {
-    "att_goals_sum": 9.0,
-    "att_exp_sum": 8.79464422644063,
-    "def_goals_sum": 2.0,
-    "def_exp_sum": 3.3541047443426146,
-    "n": 4
+    "att_goals_sum": 10.0,
+    "att_exp_sum": 10.423913696693912,
+    "def_goals_sum": 4.0,
+    "def_exp_sum": 4.4235410971450335,
+    "n": 5
   },
   "Morocco": {
     "att_goals_sum": 10.0,
@@ -168,11 +168,11 @@
     "n": 4
   },
   "Belgium": {
-    "att_goals_sum": 9.0,
-    "att_exp_sum": 8.387574115682071,
-    "def_goals_sum": 4.0,
-    "def_exp_sum": 3.3604560363289773,
-    "n": 4
+    "att_goals_sum": 13.0,
+    "att_exp_sum": 9.838035550328259,
+    "def_goals_sum": 5.0,
+    "def_exp_sum": 4.561728926721285,
+    "n": 5
   },
   "Egypt": {
     "att_goals_sum": 6.0,
@@ -196,11 +196,11 @@
     "n": 3
   },
   "Spain": {
-    "att_goals_sum": 8.0,
-    "att_exp_sum": 9.089415345135654,
+    "att_goals_sum": 9.0,
+    "att_exp_sum": 10.576595385815946,
     "def_goals_sum": 0.0,
-    "def_exp_sum": 3.196891292533107,
-    "n": 4
+    "def_exp_sum": 4.36850464958365,
+    "n": 5
   },
   "Cape Verde": {
     "att_goals_sum": 3.0,
@@ -245,11 +245,11 @@
     "n": 3
   },
   "Norway": {
-    "att_goals_sum": 10.0,
-    "att_exp_sum": 6.448596508510053,
-    "def_goals_sum": 8.0,
-    "def_exp_sum": 4.681503711078035,
-    "n": 4
+    "att_goals_sum": 12.0,
+    "att_exp_sum": 7.518032861312472,
+    "def_goals_sum": 9.0,
+    "def_exp_sum": 6.310773181331318,
+    "n": 5
   },
   "Argentina": {
     "att_goals_sum": 9.0,
@@ -281,10 +281,10 @@
   },
   "Portugal": {
     "att_goals_sum": 8.0,
-    "att_exp_sum": 8.360398745951514,
-    "def_goals_sum": 2.0,
-    "def_exp_sum": 3.6040554344254616,
-    "n": 4
+    "att_exp_sum": 9.532012103002057,
+    "def_goals_sum": 3.0,
+    "def_exp_sum": 5.091235475105754,
+    "n": 5
   },
   "Congo DR": {
     "att_goals_sum": 5.0,
@@ -308,11 +308,11 @@
     "n": 4
   },
   "England": {
-    "att_goals_sum": 8.0,
-    "att_exp_sum": 9.816087286451841,
-    "def_goals_sum": 3.0,
-    "def_exp_sum": 3.0240837381635406,
-    "n": 4
+    "att_goals_sum": 11.0,
+    "att_exp_sum": 11.4043356274204,
+    "def_goals_sum": 5.0,
+    "def_exp_sum": 4.1211413928483465,
+    "n": 5
   },
   "Croatia": {
     "att_goals_sum": 6.0,

@@ -720,6 +720,38 @@
       "hg": 0,
       "ag": 1,
       "stage": "Knockout"
+    },
+    {
+      "date": "2026-07-05",
+      "home": "Brazil",
+      "away": "Norway",
+      "hg": 1,
+      "ag": 2,
+      "stage": "Knockout"
+    },
+    {
+      "date": "2026-07-05",
+      "home": "Mexico",
+      "away": "England",
+      "hg": 2,
+      "ag": 3,
+      "stage": "Knockout"
+    },
+    {
+      "date": "2026-07-06",
+      "home": "Portugal",
+      "away": "Spain",
+      "hg": 0,
+      "ag": 1,
+      "stage": "Knockout"
+    },
+    {
+      "date": "2026-07-06",
+      "home": "USA",
+      "away": "Belgium",
+      "hg": 1,
+      "ag": 4,
+      "stage": "Knockout"
     }
   ]
 }
