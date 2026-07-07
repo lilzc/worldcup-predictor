@@ -1,5 +1,11 @@
 # worldcup2026 模型开发规则
 
+## 每日路由（唯一入口）
+
+- 「今天推单 / matchday」→ `/matchday`；「结算 / 收赛果 / daily-settle」→ `/daily-settle`
+- 收盘后 `/context-save` 并换新会话（见会话与上下文纪律节）
+- **规划机制**：本项目**不用** planning-with-files（那是 kronos-plus 试点）——任务状态以本文件的事故台账 + staging 闸 + `/context-save` 为准，禁止双轨
+
 ## 新因子/模型修改 — 强制流程
 
 做任何新因子、参数调整、新数据源、新市场建模，必须按以下顺序走，**不允许跳步，每步完成前不进下一步**：

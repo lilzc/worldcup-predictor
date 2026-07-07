@@ -204,18 +204,33 @@ def fetch_today_matches(
         print(f"  剩余配额    : {quota_remaining}  已用: {quota_used}")
         print(f"  API 共返回  : {len(raw_data)} 场（含未来多天）")
 
-    # ── 按今日过滤 ────────────────────────────────────────────────────────
-    today_raw = [m for m in raw_data if m.get("commence_time", "")[:10] == today_utc]
+    # ── 按 +30h 窗口过滤（今日 00:00 UTC → 明日 06:00 UTC）─────────────────
+    # odds-api commence_time 已知存在 +1 日漂移（UTC 晚场被标到次日），
+    # +30h 宽窗口确保漂移的今日场次不被漏掉，多出的明日早场无害。
+    _window_base = datetime.strptime(today_utc, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    _window_end  = _window_base + timedelta(hours=30)
+
+    def _in_window(ct: str) -> bool:
+        if not ct:
+            return False
+        try:
+            t = datetime.fromisoformat(ct.replace("Z", "+00:00"))
+            return _window_base <= t < _window_end
+        except Exception:
+            return False
+
+    today_raw = [m for m in raw_data if _in_window(m.get("commence_time", ""))]
 
     if not today_raw:
         dates_avail = sorted({m.get("commence_time","")[:10] for m in raw_data if m.get("commence_time","")})
-        msg = f"今日 ({today_utc}) 无赛程  (API 共 {len(raw_data)} 场，可用日期: {dates_avail})"
+        msg = (f"窗口 ({today_utc} 00:00 → +30h) 无赛程"
+               f"  (API 共 {len(raw_data)} 场，可用日期: {dates_avail})")
         if verbose:
             print(f"  ⚠ {msg}")
         return FetchResult([], today_utc, SPORT_KEY, quota_remaining, quota_used, now_iso, error=msg)
 
     if verbose:
-        print(f"  今日场次    : {len(today_raw)} 场")
+        print(f"  今日场次    : {len(today_raw)} 场  (窗口 {today_utc} 00:00 UTC → +30h)")
 
     # ── 解析每场 ─────────────────────────────────────────────────────────
     from config import TEAM_ELO

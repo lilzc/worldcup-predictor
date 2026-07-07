@@ -47,6 +47,39 @@ def step_health(verbose: bool = True) -> dict:
     return result
 
 
+def _tag_date_drift_dups(pending: list, db_matches: list) -> None:
+    """
+    In-place: SINGLE_SOURCE pending entries whose team pair + score already exist
+    in DB with date ±1 day are tagged DATE_DRIFT_DUP (odds-api +1d drift artifact).
+    These are archived silently — not shown as real conflicts, not written to
+    pending_results.jsonl.
+    """
+    from datetime import datetime as _dt
+    db_idx: dict = {}
+    for m in db_matches:
+        key = (min(m["home"], m["away"]), max(m["home"], m["away"]))
+        db_idx.setdefault(key, []).append(m)
+
+    for p in pending:
+        if p.get("verdict") != "SINGLE_SOURCE":
+            continue
+        key = (min(p["home"], p["away"]), max(p["home"], p["away"]))
+        for db_m in db_idx.get(key, []):
+            same_home = p["home"] == db_m["home"]
+            p_hg = p["hg"] if same_home else p["ag"]
+            p_ag = p["ag"] if same_home else p["hg"]
+            if db_m["hg"] == p_hg and db_m["ag"] == p_ag:
+                try:
+                    d_p  = _dt.strptime(p["date"],    "%Y-%m-%d").date()
+                    d_db = _dt.strptime(db_m["date"], "%Y-%m-%d").date()
+                    if abs((d_p - d_db).days) == 1:
+                        p["verdict"] = "DATE_DRIFT_DUP"
+                        p["note"] = f"已在DB(date={db_m['date']}),日期漂移归档"
+                        break
+                except Exception:
+                    pass
+
+
 # ── Step 2: 赛果同步 ─────────────────────────────────────────────────────────
 
 def step_results_sync() -> dict:
@@ -94,6 +127,12 @@ def step_results_sync() -> dict:
         src_b_new = []
         src_b_all = []
 
+    # Load full DB records for drift-dup detection
+    db_matches_full = []
+    if _os.path.exists(RESULTS_PATH):
+        with open(RESULTS_PATH, encoding="utf-8") as f:
+            db_matches_full = _json.load(f).get("matches", [])
+
     # Cross-validate new matches only
     if not src_a_new and not src_b_new:
         print("  无新赛果需要处理")
@@ -102,6 +141,7 @@ def step_results_sync() -> dict:
 
     print("  交叉验证:")
     confirmed, pending = cross_validate(src_a_new, src_b_new)
+    _tag_date_drift_dups(pending, db_matches_full)
 
     # Print cross-validation results
     for c in confirmed:
@@ -146,10 +186,13 @@ def step_results_sync() -> dict:
         _hline_bot()
         print("  → 确认无误请执行: python3 daily_sync.py --commit-results")
 
-    if pending:
-        print(f"\n  待人工裁决 — {len(pending)} 条冲突/单源，不自动入库:")
+    real_pending  = [p for p in pending if p.get("verdict") != "DATE_DRIFT_DUP"]
+    drift_dups    = [p for p in pending if p.get("verdict") == "DATE_DRIFT_DUP"]
+
+    if real_pending:
+        print(f"\n  待人工裁决 — {len(real_pending)} 条冲突/单源，不自动入库:")
         _hline()
-        for i, p in enumerate(pending):
+        for i, p in enumerate(real_pending):
             if i > 0:
                 _hline_mid()
             sa = p.get("source_a") or {}
@@ -159,10 +202,11 @@ def step_results_sync() -> dict:
             _row(f"场次: {p['home']} vs {p['away']}  ({p['date']})")
             _row(f"源A odds-api : {sa_score:<10}  源B martj42 : {sb_score:<10}  verdict={p['verdict']}")
             if p["verdict"] == "CONFLICT":
-                # 猜测是否 AET（两源分歧且一方比分为平局）
-                is_maybe_aet = (sa and sb and
-                                sa["hg"] != sb["hg"] and
-                                (sa["hg"] == sa["ag"] or sb["hg"] == sb["ag"]))
+                sa_obj = p.get("source_a") or {}
+                sb_obj = p.get("source_b") or {}
+                is_maybe_aet = (sa_obj and sb_obj and
+                                sa_obj["hg"] != sb_obj["hg"] and
+                                (sa_obj["hg"] == sa_obj["ag"] or sb_obj["hg"] == sb_obj["ag"]))
                 if is_maybe_aet:
                     _row("⚠ 可能口径差异: 一源为90min平局，另一源为加时后总比分")
                     _row("建议: 人工核对，以90min比分手动填入后运行 --commit-results")
@@ -175,6 +219,11 @@ def step_results_sync() -> dict:
                 _row(f"建议入库值(单源参考): {p['hg']}-{p['ag']}  — 请人工核实后入库")
         _hline_bot()
         print(f"  冲突记录已写入 data/pending_results.jsonl")
+
+    if drift_dups:
+        print(f"\n  日期漂移归档 — {len(drift_dups)} 条(已在DB，odds-api +1日漂移，自动跳过):")
+        for d in drift_dups:
+            print(f"    ✓ {d['home']} {d['hg']}-{d['ag']} {d['away']}  {d['note']}")
 
     return {"confirmed": len(confirmed), "pending": len(pending)}
 
