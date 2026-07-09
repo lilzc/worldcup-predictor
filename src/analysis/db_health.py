@@ -64,7 +64,9 @@ def check_missing_results(matches: list[dict]) -> dict:
 
     # ── martj42 CSV 对照（权威赛程）──
     if not os.path.exists(MARTJ42_CSV_PATH):
-        return {"name": name, "ok": True, "detail": "martj42 CSV 缓存不存在，跳过体检"}
+        # 权威赛程源缺失时无法核对漏录 → 保守判失败（缺信息不猜测通过）
+        return {"name": name, "ok": False,
+                "detail": "martj42 CSV 缓存不存在，无法核对漏录（保守判失败，请刷新 martj42 缓存）"}
 
     import csv as _csv, io as _io
     today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -114,9 +116,10 @@ def check_duplicates(matches: list[dict]) -> dict:
     seen: dict = {}
     dupes = []
     for m in matches:
-        key = (m.get("date"), m.get("home"), m.get("away"))
+        # 主客顺序归一化：A-B 与 B-A 同日视为同场重复（113→85 去重事故同类）
+        key = (m.get("date"), *sorted([m.get("home") or "", m.get("away") or ""]))
         if key in seen:
-            dupes.append(f"{key[0]} {key[1]} vs {key[2]}")
+            dupes.append(f"{m.get('date')} {m.get('home')} vs {m.get('away')}")
         else:
             seen[key] = True
     if dupes:
@@ -255,6 +258,11 @@ def check_odds_history_coverage(matches: list[dict]) -> dict:
     n_covered = len(covered)
     pct = 100 * n_covered / total if total else 0
     detail = f"覆盖 {n_covered}/{total} 场 ({pct:.0f}%)"
+    # odds_history 非空却零覆盖 = 系统性 key/格式断裂（如队名归一漂移）→ 判失败
+    # 部分覆盖不判失败：早期场次在盘口追踪开始前无 odds_history 属正常
+    if total > 0 and n_covered == 0:
+        return {"name": name, "ok": False,
+                "detail": detail + " — 零覆盖，疑 key/格式断裂"}
     return {"name": name, "ok": True, "detail": detail}
 
 
