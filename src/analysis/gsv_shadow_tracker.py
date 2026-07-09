@@ -234,15 +234,21 @@ def _load_seen_keys() -> set[tuple]:
     if not DATA_FILE.exists():
         return keys
     try:
-        with open(DATA_FILE, encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
+        f = open(DATA_FILE, encoding="utf-8")
+    except Exception as e:
+        print(f"[gsv-tracker WARN] 无法读取 shadow log ({DATA_FILE}): {e} — 去重键为空，可能重复记录", file=sys.stderr)
+        return keys
+    with f:
+        for i, line in enumerate(f, 1):
+            line = line.strip()
+            if not line:
+                continue
+            try:
                 r = json.loads(line)
-                keys.add((r.get("home", ""), r.get("away", ""), r.get("date", "")))
-    except Exception:
-        pass
+            except Exception as e:
+                print(f"[gsv-tracker WARN] shadow log 第{i}行解析失败已跳过: {e}", file=sys.stderr)
+                continue
+            keys.add((r.get("home", ""), r.get("away", ""), r.get("date", "")))
     return keys
 
 
@@ -258,8 +264,10 @@ def log_gsv_match(record: dict) -> None:
         _SEEN_KEYS.add(key)
         with open(DATA_FILE, "a", encoding="utf-8") as f:
             f.write(json.dumps(record, ensure_ascii=False) + "\n")
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[gsv-tracker WARN] 追踪记录写入失败 "
+              f"({record.get('home', '?')}-{record.get('away', '?')} {record.get('date', '?')}): {e} "
+              f"— 该场未计入 OOS 样本(影响 DC/平局解封 N 计数)", file=sys.stderr)
 
 
 # ── 回填 ──────────────────────────────────────────────────────────────────────

@@ -250,26 +250,31 @@ _GSV_OOS_CUTOFF = "2026-07-03"
 _GSV_OOS_THRESHOLD = 8
 
 
-def _count_oos_gsv_n() -> int:
+def _count_oos_gsv_n(log_path=None) -> int:
     """读 gsv_shadow_log.jsonl，统计 _GSV_OOS_CUTOFF 之后的样本外场次数。"""
-    log_path = Path("data/gsv_shadow_log.jsonl")
+    if log_path is None:
+        log_path = Path("data/gsv_shadow_log.jsonl")
     if not log_path.exists():
         return 0
     n = 0
     try:
-        with open(log_path, encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    r = json.loads(line)
-                    if r.get("date", "") > _GSV_OOS_CUTOFF:
-                        n += 1
-                except Exception:
-                    pass
-    except Exception:
-        pass
+        f = open(log_path, encoding="utf-8")
+    except Exception as e:
+        print(f"[gsv-oos WARN] 无法读取 {log_path}: {e} — 样本外 N 计数可能偏低", file=sys.stderr)
+        return n
+    with f:
+        for i, line in enumerate(f, 1):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                r = json.loads(line)
+            except Exception as e:
+                print(f"[gsv-oos WARN] shadow log 第{i}行损坏已跳过: {e} "
+                      f"— 样本外 N 计数可能偏低(影响 DC/平局解封裁决)", file=sys.stderr)
+                continue
+            if r.get("date", "") > _GSV_OOS_CUTOFF:
+                n += 1
     return n
 
 

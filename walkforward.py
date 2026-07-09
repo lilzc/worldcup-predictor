@@ -643,8 +643,10 @@ def run_walkforward(verbose: bool = True, use_ad: bool = None):
                     hg=hg, ag=ag, odds_entry=odds_lookup[(home, away)],
                 )
                 _log_gsv(_rec)
-            except Exception:
-                pass  # 追踪器错误不中断主流程
+            except Exception as _e:
+                # 追踪器错误不中断主流程，但不再静默（禁止静默失效）
+                print(f"[gsv-tracker WARN] walkforward 追踪旁路失败 ({home}-{away}): {_e} "
+                      f"— 该场未记入 shadow log", file=sys.stderr)
 
         # 赛后更新 Elo 和 AD 状态（含当场结果，用于后续场次）
         exp_h = _wf_ad_exp(he, ae)
