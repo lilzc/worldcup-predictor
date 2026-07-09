@@ -841,6 +841,16 @@ def _sealed_sync_redirect() -> None:
     sys.exit(1)
 
 
+def _sealed_manual_redirect(n_stale: int) -> None:
+    """裸跑 today.py 落到过期封存的 MANUAL_MATCHES（2026-07-03封存）。
+    禁止用过期快照出正式推单，引导到当日唯一权威入口并以非0退出。"""
+    print(f"\n[today] 裸跑 today.py 已封：MANUAL_MATCHES 是过期封存快照"
+          f"（{n_stale} 场日期已过期，2026-07-03 封存，勿更新）。")
+    print("  当日预测唯一权威入口：")
+    print("    python3 predict_market.py --auto-today")
+    sys.exit(1)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--auto",     action="store_true", help="从 The Odds API 自动抓取赔率")
@@ -871,7 +881,7 @@ def main():
         today_str = _date.today().isoformat()
         stale = [m for m in matches if m.get("date", "9999-99-99") < today_str]
         if stale:
-            print(f"\n⚠  {len(stale)} 场比赛日期已过期，请更新 MANUAL_MATCHES\n")
+            _sealed_manual_redirect(len(stale))
 
     # ── Elo 新鲜度守卫（预测前必查，过期则拒跑）──────────────────────────
     from src.analysis.db_health import assert_elo_fresh
