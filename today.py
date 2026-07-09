@@ -830,6 +830,17 @@ def run_matches(matches: list[dict], bankroll: float) -> list[dict]:
     return results
 
 
+def _sealed_sync_redirect() -> None:
+    """today.py --sync 直写旁路已封（曾绕过 staging 双源核验+人工确认闸+replay）。
+    赛果入库统一走带 staging 闸的管线，此处引导并以非0退出。"""
+    print("\n[sync] today.py --sync 直写路径已封（曾绕过 staging 双源核验+人工确认闸+replay）。")
+    print("  赛果入库统一走带 staging 闸的管线：")
+    print("    1) python3 daily_sync.py                     # 拉取→双源交叉→写 staging")
+    print("    2) 人工核对 data/results_staging.json")
+    print("    3) python3 daily_sync.py --commit-results    # 确认入库+replay")
+    sys.exit(1)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--auto",     action="store_true", help="从 The Odds API 自动抓取赔率")
@@ -840,10 +851,7 @@ def main():
     args = parser.parse_args()
 
     if args.sync:
-        from src.data.results_sync import run as sync_results
-        added = sync_results()
-        if added:
-            print(f"\n[sync] 新增 {added} 场赛果，建议重跑 python3 update_elo.py\n")
+        _sealed_sync_redirect()
 
     if args.auto:
         if not ODDS_API_KEY:
