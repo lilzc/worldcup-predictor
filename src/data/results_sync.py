@@ -497,6 +497,10 @@ def _elo_checksum(path: str) -> str:
         return hashlib.sha256(f.read()).hexdigest()
 
 
+class ReplayError(RuntimeError):
+    """赛果已入库但 replay 失败 → elo_state 可能与赛果库不一致。调用方须以非0退出码收尾。"""
+
+
 def commit_from_staging(auto_replay: bool = True) -> int:
     """
     1. 读 staging["confirmed"]
@@ -577,6 +581,7 @@ def commit_from_staging(auto_replay: bool = True) -> int:
         print(f"  {e['date']}  {e['home']} {e['hg']}-{e['ag']} {e['away']}")
 
     # Replay Elo
+    replay_ok = True
     if auto_replay:
         print("[results_sync] 触发 replay ...")
         root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -589,14 +594,17 @@ def commit_from_staging(auto_replay: bool = True) -> int:
                 timeout=120,
             )
             if result.returncode != 0:
-                print(f"[results_sync] ⚠ replay 失败:\n{result.stderr}")
+                replay_ok = False
+                print(f"[results_sync] ✗ replay 失败(退出码将非0):\n{result.stderr}")
             else:
                 total = len(current)
                 print(f"[results_sync] replay 完成 ({total} 场)")
         except subprocess.TimeoutExpired:
-            print("[results_sync] ⚠ replay 超时")
+            replay_ok = False
+            print("[results_sync] ✗ replay 超时(退出码将非0)")
         except Exception as e:
-            print(f"[results_sync] ⚠ replay 异常: {e}")
+            replay_ok = False
+            print(f"[results_sync] ✗ replay 异常(退出码将非0): {e}")
 
         # Consistency check: verify historical teams' Elo didn't change unexpectedly
         post_checksum = _elo_checksum(elo_path)
@@ -636,4 +644,9 @@ def commit_from_staging(auto_replay: bool = True) -> int:
                 f.write(json.dumps(p, ensure_ascii=False) + "\n")
         print(f"[results_sync] {len(real_pending)} 条待裁决记录已追加 → {PENDING_PATH}")
 
+    if auto_replay and not replay_ok:
+        raise ReplayError(
+            f"{len(new_entries)} 条赛果已入库，但 replay 失败 → elo_state.json 可能与赛果库不一致；"
+            f"请手动重跑 `python3 update_elo.py --replay` 并核对 checksum"
+        )
     return len(new_entries)

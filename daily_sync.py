@@ -308,12 +308,20 @@ def main():
 
     # --commit-results: commit then run full pipeline
     if args.commit_results:
-        n = step_commit_results()
+        from src.data.results_sync import ReplayError
+        replay_failed = False
+        try:
+            n = step_commit_results()
+        except ReplayError as e:
+            replay_failed = True
+            print(f"\n[daily_sync] ✗ {e}")
         print()
         # After commit, still run health check and show status
         health = step_health(verbose=True)
         odds   = step_odds()
         step_summary(health, {"confirmed": 0}, odds)
+        if replay_failed:
+            sys.exit(1)  # 退出码累计：replay 失败必须非0，不得静默收尾
         return
 
     # Normal flow: health → sync → odds → summary
