@@ -147,7 +147,23 @@ def _results_grid(home: str, away: str, probs: dict, tiers: dict) -> None:
 
 # ── 单场 B 输出 ───────────────────────────────────────────────────────────
 
-def print_match_b(m: dict, a_portfolio: list = None, news_data: dict | None = None) -> dict:
+def _filter_a_labels_by_kill(a_labels: list, kill_results: dict | None) -> list:
+    """诊断展示用：被 1X2 kill 的方向不进 A 引擎候选展示（对齐 today.py kill 口径）。
+    仅过滤 1X2（主场胜/平局/客场胜）；AH/OU/CS 非 1X2，透传（其 kill 不在此计算，见 PDF/best_bets）。"""
+    if not kill_results:
+        return list(a_labels)
+    _dir_of = {"主场胜": "home_win", "平局": "draw", "客场胜": "away_win"}
+    kept = []
+    for lbl in a_labels:
+        d = next((v for k, v in _dir_of.items() if lbl.startswith(k)), None)
+        if d is not None and not kill_results.get(d, {}).get("passed", True):
+            continue  # 该 1X2 方向被 kill，不展示
+        kept.append(lbl)
+    return kept
+
+
+def print_match_b(m: dict, a_portfolio: list = None, news_data: dict | None = None,
+                  kill_results: dict | None = None) -> dict:
     """输出单场 B 预测。a_portfolio 为 A 系统的推单列表（仅用于分歧展示）。
     news_data = {flags: list[NewsFlag], adj: dict} 由 --auto 传入。"""
     home, away = m["home"], m["away"]
@@ -269,10 +285,13 @@ def print_match_b(m: dict, a_portfolio: list = None, news_data: dict | None = No
     b_ou   = tiers["combined_ou"][0]
     if a_portfolio is not None:
         a_labels = [b.get("label", "") for b in a_portfolio if b.get("stake", 0) > 0]
+        # 套已算好的 1X2 kill：被 kill 的 1X2 方向不进诊断展示（对齐 today.py kill 口径）
+        a_labels = _filter_a_labels_by_kill(a_labels, kill_results)
         if a_labels:
             for al in a_labels[:4]:
-                print(f"  [A推单] {al}")
+                print(f"  [A引擎候选] {al}")
             print(f"  [B综合] {b_comb}  /  {b_ou}")
+            print(f"  (A引擎候选=诊断用途,1X2已套kill;AH/OU/CS未过kill,权威过滤推单见PDF/best_bets)")
             # 简单分歧检测：方向词匹配
             a_main = next((al for al in a_labels if "胜" in al or "Over" in al or "Under" in al), None)
             if a_main:
@@ -283,7 +302,7 @@ def print_match_b(m: dict, a_portfolio: list = None, news_data: dict | None = No
                 else:
                     print(f"  [A-B 方向一致或无法比较]")
         else:
-            print(f"  [A: NO BET]  B综合方向: {b_comb}  /  {b_ou}")
+            print(f"  [A: NO BET / 1X2全被kill]  B综合方向: {b_comb}  /  {b_ou}")
 
     return {"home": home, "away": away, "tiers": tiers, "probs": probs,
             "lam": r["lam"], "mu": r["mu"], "market": r["market"]}
@@ -518,7 +537,8 @@ def run_auto_today() -> None:
         # 在 B1 输出块前打印 kickoff 信息
         print(f"\n  开球: {mt.commence_time}  ({mt.kickoff_delta})  "
               f"赔率 [{mt.odds_home}/{mt.odds_draw}/{mt.odds_away}] @{mt.bookmaker}")
-        res = print_match_b(m_dict, a_portfolio=a_portfolio, news_data=news_data)
+        res = print_match_b(m_dict, a_portfolio=a_portfolio, news_data=news_data,
+                            kill_results=(a_data or {}).get("kill_results"))
         if res:
             b_results.append(res)
 
