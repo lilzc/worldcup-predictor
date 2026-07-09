@@ -14,7 +14,8 @@ RESULTS_PATH  = "data/wc2026_results.json"
 
 # WC2026 淘汰赛首日。daily_sync 的口径警告（"请确认是否为90min比分"）依赖 stage
 # 字段，此前 5 处硬编码 "Group" 导致警告永远不触发（2026-07-05 修复）。
-KNOCKOUT_START = "2026-06-28"
+# 唯一真源在 config.py（2026-07-10：group_stage 罚分修复复用同一常量，避免双源漂移）。
+from config import KNOCKOUT_START
 
 
 def _stage_for(date_str: str) -> str:

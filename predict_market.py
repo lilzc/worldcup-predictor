@@ -518,6 +518,7 @@ def run_auto_today() -> None:
                     home_team=mt.home, away_team=mt.away,
                     odds_home=mt.odds_home, odds_draw=mt.odds_draw,
                     odds_away=mt.odds_away,
+                    match_date=(mt.commence_time or "")[:10],  # 淘汰赛/小组赛判定(R16全在06-28后，漂移不跨边界)
                 )
             if _ar:
                 a_portfolio = _ar.get("portfolio", [])

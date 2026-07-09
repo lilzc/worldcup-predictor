@@ -300,6 +300,9 @@ def _compute_gsv_legacy_dc_edge(home: str, away: str, strong: str,
         la = GSV_LAMBDA_FACTOR_EXTENDED
     mat_gsv = score_matrix(home, away, lam_scale_home=lh, lam_scale_away=la)
     raw_gsv = matrix_to_probs(mat_gsv)
+    # 诊断/实验路径(GSV应用于1X2假设，喂已挂起的DC猜想追踪，非生产推单)：
+    # 有意保留 is_group_stage 默认(True)——调用者 m_dict 无 date，且该路径不进 Edge/稳单/PDF。
+    # 生产路径(predict.py)与基准(walkforward.py)已按 match_date 修正。见 specs/knockout_group_stage_penalty_fix.md
     adj_gsv = apply_all(home, away, raw_gsv["home_win"], raw_gsv["draw"], raw_gsv["away_win"],
                         home_elo=he, away_elo=ae)
     leg_hw = adj_gsv.get("home_win", raw_gsv["home_win"])
@@ -821,6 +824,7 @@ def run_matches(matches: list[dict], bankroll: float) -> list[dict]:
             ht_1x2_odds=m.get("ht_1x2_odds"),
             ht_ou_odds=m.get("ht_ou_odds"),
             ht_ah_odds=m.get("ht_ah_odds"),
+            match_date=m.get("date"),
         )
         results.append({
             "home": m["home"],

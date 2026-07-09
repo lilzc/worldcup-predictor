@@ -18,6 +18,7 @@ PROB_CAP = 0.85       # 单队最高胜率上限
 WC_GOAL_DISCOUNT = 1.0    # BASE_GOALS=1.32 已是世界杯实际均值，无需再折扣
 BASE_GOALS = 1.32     # WC每队平均进球（2014-2022实测 2.64球/场÷2）; 改动需回测Over2.5准确率
 ELO_SCALE  = 400      # Elo差分化系数（400分差≈e^1≈2.7x进球差）; 改动需回测Brier Score
+KNOCKOUT_START = "2026-06-28"  # 淘汰赛起始日（唯一真源）; date>=此值为淘汰赛，小组赛波动罚分不生效
 
 DRAW_CALIBRATION = 1.0  # 平局概率显式缩减因子（<1.0则压低draw，>1.0则抬高draw）
 PROB_SHARPENING  = 1.3  # 概率锐化幂次（>1.0压缩尾部、抬高强队；改动需回测Brier Score）

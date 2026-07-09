@@ -16,7 +16,7 @@ from config import (TEAM_ELO, BANKROLL,
                     GSV_LAMBDA_FACTOR, GSV_LAMBDA_ELO_MIN,
                     GSV_LAMBDA_DIFF_MIN, GSV_LAMBDA_DIFF_MAX,
                     GSV_LAMBDA_FACTOR_EXTENDED, GSV_LAMBDA_DIFF_EXTENDED,
-                    HT_DRAW_KILL_ELO_DIFF)
+                    HT_DRAW_KILL_ELO_DIFF, KNOCKOUT_START)
 from src.models.poisson import (score_matrix, matrix_to_probs, get_elo, get_lambdas,
                                 ht_score_matrix, ht_matrix_to_probs)
 from src.models.adjustments import apply_all
@@ -133,6 +133,7 @@ def predict(
     ht_1x2_odds: tuple = None,  # (home_odds, draw_odds, away_odds)
     ht_ou_odds: dict = None,    # {0.5: (over_odds, under_odds), 1.0: ..., 1.5: ...}
     ht_ah_odds: dict = None,    # {0.5: (home_odds, away_odds), 1.0: ...}
+    match_date: str = None,     # 比赛日期(YYYY-MM-DD)；判小组赛/淘汰赛，None→按小组赛(保守)
 ):
     bankroll = bankroll or BANKROLL
 
@@ -145,10 +146,13 @@ def predict(
     _he = _live.get(home_team, 1700)
     _ae = _live.get(away_team, 1700)
     _diff = _he - _ae
+    # 淘汰赛(date>=KNOCKOUT_START)不施加小组赛波动罚分；date 缺失→按小组赛(保守)
+    _is_group = (match_date is None) or (match_date < KNOCKOUT_START)
     adj = apply_all(
         home_team, away_team,
         raw_probs["home_win"], raw_probs["draw"], raw_probs["away_win"],
         h2h_home_edge=h2h_home_edge,
+        is_group_stage=_is_group,
         home_elo=float(_he), away_elo=float(_ae),
     )
     # Merge adjusted 1X2 back into full probs dict

@@ -23,7 +23,7 @@ from config import (TEAM_ELO, BASE_GOALS, ELO_SCALE,
                     GSV_LAMBDA_FACTOR, GSV_LAMBDA_ELO_MIN,
                     GSV_LAMBDA_DIFF_MIN, GSV_LAMBDA_DIFF_MAX,
                     GSV_LAMBDA_FACTOR_EXTENDED, GSV_LAMBDA_DIFF_EXTENDED,
-                    BANKROLL, KELLY_FRACTION, MIN_EDGE, AD_ENABLED)
+                    BANKROLL, KELLY_FRACTION, MIN_EDGE, AD_ENABLED, KNOCKOUT_START)
 
 ARTIFACT_GAP   = 0.08   # gap ≥ 8% → LOW（不下）
 ARTIFACT_KILL  = 0.20   # gap ≥ 20% → KILL（丢弃）
@@ -335,13 +335,15 @@ def _wf_ad_update(ad: dict, team: str, gf: int, ga: int, exp_f: float, exp_a: fl
 
 
 def _build_mat_custom(home: str, away: str, he: float, ae: float, ad_state: dict,
-                      gsv_mode: str = None):
+                      gsv_mode: str = None, match_date: str = None):
     """Point-in-time matrix using pre-match Elo and AD state (no lookahead).
 
     gsv_mode: "production" (default) = GSV only覆盖AH/OU，1X2用未压矩阵（与predict.py一致）
               "legacy" = 旧行为，GSV应用于完整矩阵含1X2（仅供历史对比）
     """
     _mode = gsv_mode if gsv_mode is not None else WF_GSV_MODE
+    # 淘汰赛(date>=KNOCKOUT_START)不施加小组赛波动罚分；date 缺失→按小组赛(保守)
+    _is_group = (match_date is None) or (match_date < KNOCKOUT_START)
 
     diff = he - ae
     lh = la = 1.0
@@ -371,7 +373,7 @@ def _build_mat_custom(home: str, away: str, he: float, ae: float, ad_state: dict
                            custom_att_away=att_a, custom_def_away=def_a)
         raw = matrix_to_probs(mat)
         adj = apply_all(home, away, raw["home_win"], raw["draw"], raw["away_win"],
-                        home_elo=he, away_elo=ae)
+                        is_group_stage=_is_group, home_elo=he, away_elo=ae)
         probs = {**raw, **adj}
         return mat, probs, diff, gsv_fired
 
@@ -566,10 +568,12 @@ def run_walkforward(verbose: bool = True, use_ad: bool = None):
             odds_entry = odds_lookup[(home, away)]
 
             if _ad_enabled:
-                mat, probs, diff, gsv = _build_mat_custom(home, away, he, ae, ad_state)
+                mat, probs, diff, gsv = _build_mat_custom(home, away, he, ae, ad_state,
+                                                          match_date=m.get("date"))
             else:
                 mat, probs, diff, gsv = _build_mat_custom(
-                    home, away, he, ae, {})  # 空 ad_state → 全因子=1.0
+                    home, away, he, ae, {},  # 空 ad_state → 全因子=1.0
+                    match_date=m.get("date"))
 
             cands = _scan_from_probs(home, away, hg, ag, odds_entry, mat, probs)
 

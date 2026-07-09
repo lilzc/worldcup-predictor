@@ -144,7 +144,8 @@ commit message 格式：
 - 门将黑天鹅：库拉索 Eloy Room 15扑 0-0 → 极端情况不可建模，大赔率冷门警惕
 - 强队打弱队趋向大球（日本4-0突尼斯、荷兰5-1瑞典）→ Elo差 >150 时不要主动押小球
 - GSV过拟合风险：GSV_PENALTY=0.12 拟合了比利时连续两场小组赛平局，未来赛段不一定适用
-- 40-60%校准区间持续低估：模型在此区间预测46-55%但实际70-73%，对中等强度优势队注意赔率
+- 40-60%校准区间持续低估：模型在此区间预测46-55%但实际70-73%，对中等强度优势队注意赔率。**部分根因已定位并修复（2026-07-10，见下条 group_stage 罚分）。**
+- **group_stage 波动罚分作用域修复（2026-07-10，对抗审查#1，走 factor-workflow）**：`group_stage_volatility`（adjustments.py）对 Elo>1850 强队扣 0.12 胜率灌入平局，本意仅针对小组赛轮换（back-test 依据 Brazil 1-1 Morocco / Spain 0-0 Cape Verde 均为小组赛），但 `is_group_stage` 参数全仓库无一处传 False → 罚分被误施到淘汰赛。修复：`predict()`/`walkforward._build_mat_custom` 新增 `match_date`，`date>=KNOCKOUT_START(2026-06-28)` 时 `is_group_stage=False`（KNOCKOUT_START 迁至 config.py 为唯一真源）。**验证**：24 场真实淘汰赛 1X2 Brier 0.4010→0.3148（−0.086 改善），强队胜率恢复 +0.11~0.16 且实际多数获胜；小组赛零回归（walkforward 逐字相同，MATCHES_ODDS 全为 06-15~06-27 小组赛）。**这是"40-60%强队胜率低估"的机制根因之一——非分布问题，是罚分误施。** 默认 `match_date=None→按小组赛(保守)`；诊断路径 `today.py:303 _compute_gsv_legacy_dc_edge`（喂已挂起 DC 猜想追踪）有意保留默认+注释，不静默。backtest.py 未接线（含前视非基准，测不出此 fix，属预期）。见 specs/knockout_group_stage_penalty_fix.md。
 - FORM_WEIGHT=0.10：形态因子权重减半（从0.20），俱乐部状态在WC迁移率低
 - 20-30%校准区间结构性偏差：模型在此区间分配24%，实际发生率9.8%（41样本）——平局预测与实际平局触发事件不相关，这是Poisson模型对平局的结构性局限，参数调整无法根治
 - **平局生成与表达问题（收敛病灶，2026-07-03合并三条挂起项）**：三个现象同源，解封条件统一，届时立**单个spec**一起评估，不分开修。
