@@ -752,6 +752,54 @@
       "hg": 1,
       "ag": 4,
       "stage": "Knockout"
+    },
+    {
+      "date": "2026-07-07",
+      "home": "Argentina",
+      "away": "Egypt",
+      "hg": 3,
+      "ag": 2,
+      "stage": "Knockout"
+    },
+    {
+      "date": "2026-07-07",
+      "home": "Switzerland",
+      "away": "Colombia",
+      "hg": 0,
+      "ag": 0,
+      "stage": "Knockout"
+    },
+    {
+      "date": "2026-07-09",
+      "home": "France",
+      "away": "Morocco",
+      "hg": 2,
+      "ag": 0,
+      "stage": "Knockout"
+    },
+    {
+      "date": "2026-07-10",
+      "home": "Spain",
+      "away": "Belgium",
+      "hg": 2,
+      "ag": 1,
+      "stage": "Knockout"
+    },
+    {
+      "date": "2026-07-11",
+      "home": "Norway",
+      "away": "England",
+      "hg": 1,
+      "ag": 1,
+      "stage": "Knockout"
+    },
+    {
+      "date": "2026-07-11",
+      "home": "Argentina",
+      "away": "Switzerland",
+      "hg": 1,
+      "ag": 1,
+      "stage": "Knockout"
     }
   ]
 }
