@@ -196,11 +196,11 @@
     "n": 3
   },
   "Spain": {
-    "att_goals_sum": 11.0,
-    "att_exp_sum": 12.247110009075463,
+    "att_goals_sum": 13.0,
+    "att_exp_sum": 13.47479679466703,
     "def_goals_sum": 1.0,
-    "def_exp_sum": 5.411536524755277,
-    "n": 6
+    "def_exp_sum": 6.830791028794282,
+    "n": 7
   },
   "Cape Verde": {
     "att_goals_sum": 3.0,
@@ -225,10 +225,10 @@
   },
   "France": {
     "att_goals_sum": 16.0,
-    "att_exp_sum": 14.254353245142685,
-    "def_goals_sum": 2.0,
-    "def_exp_sum": 4.5712521868531075,
-    "n": 6
+    "att_exp_sum": 15.67360774918169,
+    "def_goals_sum": 4.0,
+    "def_exp_sum": 5.798938972444676,
+    "n": 7
   },
   "Senegal": {
     "att_goals_sum": 10.0,

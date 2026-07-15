@@ -1,62 +1,25 @@
 {
-  "_created": "2026-07-14T13:57:02Z",
-  "_manual_note": "2026-07-14 老规矩#3逐事件核验:Norway/England与Argentina/Switzerland两源记的是AET总比分,已按90min口径手改为1-1/1-1;Spain/Belgium单源经web逐事件确认90min 2-1(无加时)提入confirmed。用户确认。",
+  "_created": "2026-07-15T14:39:28Z",
   "confirmed": [
     {
-      "date": "2026-07-11",
-      "home": "Norway",
-      "away": "England",
-      "hg": 1,
-      "ag": 1,
+      "date": "2026-07-14",
+      "home": "France",
+      "away": "Spain",
+      "hg": 0,
+      "ag": 2,
       "stage": "Knockout",
       "source_a": {
         "name": "odds-api",
-        "hg": 1,
+        "hg": 0,
         "ag": 2
       },
       "source_b": {
         "name": "martj42",
-        "hg": 1,
+        "hg": 0,
         "ag": 2
       },
-      "verdict": "MANUAL_90MIN",
-      "note": "两源记AET 1-2;90min实际1-1(Schjelderup 36'/Kane 45+2'),Bellingham加时绝杀→2-1 AET,无点球。入库90min口径1-1"
-    },
-    {
-      "date": "2026-07-11",
-      "home": "Argentina",
-      "away": "Switzerland",
-      "hg": 1,
-      "ag": 1,
-      "stage": "Knockout",
-      "source_a": {
-        "name": "odds-api",
-        "hg": 3,
-        "ag": 1
-      },
-      "source_b": {
-        "name": "martj42",
-        "hg": 3,
-        "ag": 1
-      },
-      "verdict": "MANUAL_90MIN",
-      "note": "两源记AET 3-1;90min实际1-1(Mac Allister 10'/Ndoye 67'),Alvarez 112'+Lautaro 120+1'加时→3-1 AET,Embolo 72'红牌,无点球。入库90min口径1-1"
-    },
-    {
-      "date": "2026-07-10",
-      "home": "Spain",
-      "away": "Belgium",
-      "hg": 2,
-      "ag": 1,
-      "stage": "Knockout",
-      "source_a": null,
-      "source_b": {
-        "name": "martj42",
-        "hg": 2,
-        "ag": 1
-      },
-      "verdict": "MANUAL_SINGLE_CONFIRMED",
-      "note": "单源martj42 2-1;web逐事件确认90min 2-1(Ruiz 30'/De Ketelaere 41'/Merino 88'),常规时间无加时无点球。用户确认提入confirmed"
+      "verdict": "AGREE",
+      "note": "人工裁决(2026-07-15): 脚本内martj42拉取SSL失败,手动requests重拉成功0-2与odds-api一致;ESPN逐事件核验Oyarzabal 22'(点球)+Porro 58'均常规时间,FT无加时无点球,90min口径干净;用户已确认入库"
     }
   ],
   "pending": []
