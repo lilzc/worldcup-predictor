@@ -808,6 +808,30 @@
       "hg": 0,
       "ag": 2,
       "stage": "Knockout"
+    },
+    {
+      "date": "2026-07-15",
+      "home": "England",
+      "away": "Argentina",
+      "hg": 1,
+      "ag": 2,
+      "stage": "Knockout"
+    },
+    {
+      "date": "2026-07-18",
+      "home": "France",
+      "away": "England",
+      "hg": 4,
+      "ag": 6,
+      "stage": "Knockout"
+    },
+    {
+      "date": "2026-07-19",
+      "home": "Spain",
+      "away": "Argentina",
+      "hg": 0,
+      "ag": 0,
+      "stage": "Knockout"
     }
   ]
 }

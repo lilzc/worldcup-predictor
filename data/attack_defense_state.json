@@ -197,10 +197,10 @@
   },
   "Spain": {
     "att_goals_sum": 13.0,
-    "att_exp_sum": 13.47479679466703,
+    "att_exp_sum": 14.97805026065553,
     "def_goals_sum": 1.0,
-    "def_exp_sum": 6.830791028794282,
-    "n": 7
+    "def_exp_sum": 7.989876997609423,
+    "n": 8
   },
   "Cape Verde": {
     "att_goals_sum": 3.0,
@@ -224,11 +224,11 @@
     "n": 3
   },
   "France": {
-    "att_goals_sum": 16.0,
-    "att_exp_sum": 15.67360774918169,
-    "def_goals_sum": 4.0,
-    "def_exp_sum": 5.798938972444676,
-    "n": 7
+    "att_goals_sum": 20.0,
+    "att_exp_sum": 17.255515785848715,
+    "def_goals_sum": 10.0,
+    "def_exp_sum": 6.900393645923118,
+    "n": 8
   },
   "Senegal": {
     "att_goals_sum": 10.0,
@@ -252,11 +252,11 @@
     "n": 6
   },
   "Argentina": {
-    "att_goals_sum": 13.0,
-    "att_exp_sum": 15.392465431991102,
-    "def_goals_sum": 5.0,
-    "def_exp_sum": 4.26518772829684,
-    "n": 6
+    "att_goals_sum": 15.0,
+    "att_exp_sum": 17.85711096878973,
+    "def_goals_sum": 6.0,
+    "def_exp_sum": 7.103041347912371,
+    "n": 8
   },
   "Algeria": {
     "att_goals_sum": 5.0,
@@ -308,11 +308,11 @@
     "n": 5
   },
   "England": {
-    "att_goals_sum": 12.0,
-    "att_exp_sum": 12.978747418590807,
-    "def_goals_sum": 6.0,
-    "def_exp_sum": 5.227840421508892,
-    "n": 6
+    "att_goals_sum": 19.0,
+    "att_exp_sum": 15.414802245696277,
+    "def_goals_sum": 12.0,
+    "def_exp_sum": 8.115308026159402,
+    "n": 8
   },
   "Croatia": {
     "att_goals_sum": 6.0,

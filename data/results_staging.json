@@ -1,25 +1,53 @@
 {
-  "_created": "2026-07-15T14:39:28Z",
+  "_created": "2026-07-23T13:51:00Z",
   "confirmed": [
     {
-      "date": "2026-07-14",
-      "home": "France",
-      "away": "Spain",
-      "hg": 0,
+      "date": "2026-07-15",
+      "home": "England",
+      "away": "Argentina",
+      "hg": 1,
       "ag": 2,
       "stage": "Knockout",
-      "source_a": {
-        "name": "odds-api",
-        "hg": 0,
-        "ag": 2
-      },
+      "source_a": null,
       "source_b": {
         "name": "martj42",
-        "hg": 0,
+        "hg": 1,
         "ag": 2
       },
       "verdict": "AGREE",
-      "note": "人工裁决(2026-07-15): 脚本内martj42拉取SSL失败,手动requests重拉成功0-2与odds-api一致;ESPN逐事件核验Oyarzabal 22'(点球)+Porro 58'均常规时间,FT无加时无点球,90min口径干净;用户已确认入库"
+      "note": "人工裁决(2026-07-23): martj42单源+逐事件核验(Guardian/ESPN/LATimes),Gordon 55'/Fernandez 85'/Lautaro Martinez 90+2',无加时无点球,90min口径干净;用户确认入库"
+    },
+    {
+      "date": "2026-07-18",
+      "home": "France",
+      "away": "England",
+      "hg": 4,
+      "ag": 6,
+      "stage": "Knockout",
+      "source_a": null,
+      "source_b": {
+        "name": "martj42",
+        "hg": 4,
+        "ag": 6
+      },
+      "verdict": "AGREE",
+      "note": "人工裁决(2026-07-23): martj42单源+逐事件核验(ESPN gameId760516),10球全常规时间:Rice3/Konsa18/Saka37/Saka45+1/Mbappe48/Barcola54/Mbappe66/Saka87pen/Dembele90+6/Bellingham90+8,ESPN明确无加时无点球;用户确认入库"
+    },
+    {
+      "date": "2026-07-19",
+      "home": "Spain",
+      "away": "Argentina",
+      "hg": 0,
+      "ag": 0,
+      "stage": "Knockout",
+      "source_a": null,
+      "source_b": {
+        "name": "martj42",
+        "hg": 1,
+        "ag": 0
+      },
+      "verdict": "AGREE",
+      "note": "人工裁决(2026-07-23): 口径冲突已裁决——martj42的1-0为含加时总比分,唯一进球Torres 106'加时(FIFA官方/AP/ESPN三源一致,ESPN另证Argentina红牌10人),90min比分=0-0,按90min口径入库0-0;用户确认"
     }
   ],
   "pending": []
