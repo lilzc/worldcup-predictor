@@ -385,7 +385,7 @@ def _build_mat_custom(home: str, away: str, he: float, ae: float, ad_state: dict
                        custom_att_away=att_a, custom_def_away=def_a)
     raw = matrix_to_probs(mat)
     adj = apply_all(home, away, raw["home_win"], raw["draw"], raw["away_win"],
-                    home_elo=he, away_elo=ae)
+                    is_group_stage=_is_group, home_elo=he, away_elo=ae)
     probs = {**raw, **adj}
 
     # Step 2: AH/OU 用GSV矩阵覆盖（仅当GSV触发）
